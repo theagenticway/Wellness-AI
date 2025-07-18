@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang='en' class='scroll-smooth'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Interactive Report: The Gut-Mind Connection & WellnessAI</title>
+    <script src='https://cdn.tailwindcss.com'></script>
+    <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap' rel='stylesheet'>
+    <!-- Chosen Palette: 'Calm Harmony' - A palette based on soft blues, teals, and grays to evoke a sense of health, science, and calm. -->
+    <!-- Application Structure Plan: A single-page, vertically scrolling narrative experience. The structure guides the user from the high-level problem (The Wellness Crisis), to the core scientific concept (The Gut-Mind Axis), to the proposed solution (The GMRP), and finally the technology that powers it (The WellnessAI Engine). This narrative flow was chosen over a dashboard layout to tell a compelling story, making complex information digestible and engaging for potential users, investors, and health professionals. Key interactions include toggling chart data, exploring an interactive diagram of the Gut-Mind Axis, and navigating the GMRP phases via a tabbed interface. -->
+    <!-- Visualization &amp; Content Choices: 
+        1. Wellness Crisis -> Goal: Inform/Urgency -> Viz: Interactive Bar Chart -> Interaction: Toggle between datasets (Metabolic/Mental Health) to compare trends. Justification: More impactful than text for showing rising trends; interaction engages the user. Library: Chart.js.
+        2. Gut-Mind Axis -> Goal: Explain a core concept -> Viz: HTML/CSS Diagram -> Interaction: Hover over elements to reveal descriptive tooltips. Justification: Visually simplifies a complex biological system, making it understandable. Library: Vanilla JS/CSS.
+        3. GMRP Phases -> Goal: Organize a process -> Viz: Tabbed Interface -> Interaction: Click tabs to switch between phase details. Justification: Prevents information overload by presenting complex steps sequentially. Library: Vanilla JS.
+        4. AI Engine -> Goal: Explain a process flow -> Viz: HTML/CSS Flowchart -> Interaction: Subtle animations to show data flow. Justification: Dynamically illustrates the technology&#39;s feedback loop. Library: CSS Animations.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #334155; /* slate-700 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 768px; /* max-w-3xl */
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px; /* h-80 */
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px; /* md:h-96 */
+            }
+        }
+        .axis-node {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .axis-node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.2), 0 4px 6px -2px rgba(14, 165, 233, 0.1);
+        }
+        .gmrp-tab {
+            transition: all 0.2s ease-in-out;
+        }
+        .animated-arrow {
+            animation: pulse-arrow 2s infinite ease-in-out;
+        }
+        @keyframes pulse-arrow {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+<!-- Section 1: The Problem -->
+<section id="problem" class="py-16 md:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-slate-900">The Crisis of Modern Wellness</h2>
+            <p class="mt-3 max-w-2xl mx-auto text-md text-slate-600">The introduction of the report highlights a significant global challenge: despite more information being available, rates of chronic diseases are rising. This section visualizes that trend to make the problem tangible.</p>
+        </div>
+
+        <div class="mt-12 bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Prevalence of Chronic Conditions</h3>
+                    <p class="text-sm text-slate-500">Hypothetical data showing rising trends over 20 years.</p>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                    <button id="show-metabolic" class="px-3 py-1 text-sm font-medium rounded-md">Metabolic</button>
+                    <button id="show-mental" class="px-3 py-1 text-sm font-medium rounded-md">Mental</button>
+                </div>
+            </div>
+            <div class="mt-6 chart-container">
+                <canvas id="crisisChart"></canvas>
+            </div>
+            <div id="chart-context-text" class="mt-4 text-center text-sm text-slate-500 italic">
+                <p>This chart illustrates the failure of one-size-fits-all wellness models. Hover over the data points to see details. Use the buttons to toggle between metabolic and mental health trends, revealing the multifaceted nature of the crisis.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: The Science -->
+<section id="axis" class="py-16 md:py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-slate-900">The Scientific Foundation: The Gut-Mind Axis</h2>
+            <p class="mt-3 max-w-2xl mx-auto text-md text-slate-600">The report's core scientific premise is the Gut-Mind Axis. This interactive diagram breaks down the bidirectional relationship between the gut microbiome and the brain, showing how it regulates key aspects of our health. Hover over each element to learn more.</p>
+        </div>
+
+        <div class="mt-12 relative flex flex-col items-center justify-center p-8">
+            <!-- Nodes -->
+            <div class="w-full flex justify-center items-center">
+                <div id="brain-node" class="axis-node relative bg-sky-500 text-white w-40 h-40 rounded-full flex items-center justify-center text-center p-4 shadow-2xl">
+                    <span class="font-bold text-xl">The Brain</span>
+                </div>
+            </div>
+            
+            <!-- Connecting Lines -->
+            <div class="my-4 h-24 w-1 bg-slate-300 relative flex flex-col justify-around">
+                <span class="absolute top-1/4 -right-2 text-slate-400 text-3xl animated-arrow">&#9660;</span>
+                <span class="absolute bottom-1/4 -left-2 text-slate-400 text-3xl animated-arrow">&#9650;</span>
+            </div>
+
+            <div class="w-full flex justify-center items-center">
+                 <div id="gut-node" class="axis-node relative bg-teal-500 text-white w-40 h-40 rounded-full flex items-center justify-center text-center p-4 shadow-2xl">
+                    <span class="font-bold text-xl">The Gut</span>
+                </div>
+            </div>
+            
+            <!-- Satellite Info -->
+            <div id="info-metabolism" class="axis-node absolute top-1/2 -mt-40 left-4 md:left-1/4 w-32 text-center">
+                <div class="p-4 bg-white border-2 border-amber-300 rounded-lg shadow-lg">
+                    <h4 class="font-bold text-amber-700">Metabolism</h4>
+                </div>
+            </div>
+            <div id="info-immunity" class="axis-node absolute top-1/2 -mt-40 right-4 md:right-1/4 w-32 text-center">
+                <div class="p-4 bg-white border-2 border-rose-300 rounded-lg shadow-lg">
+                     <h4 class="font-bold text-rose-700">Immunity</h4>
+                </div>
+            </div>
+             <div id="info-neuro" class="axis-node absolute top-1/2 mt-16 left-4 md:left-1/4 w-32 text-center">
+                <div class="p-4 bg-white border-2 border-indigo-300 rounded-lg shadow-lg">
+                     <h4 class="font-bold text-indigo-700">Neurochemistry</h4>
+                </div>
+            </div>
+            <div id="info-behavior" class="axis-node absolute top-1/2 mt-16 right-4 md:right-1/4 w-32 text-center">
+                <div class="p-4 bg-white border-2 border-lime-300 rounded-lg shadow-lg">
+                    <h4 class="font-bold text-lime-700">Behavior</h4>
+                </div>
+            </div>
+
+            <!-- Tooltip -->
+            <div id="axis-tooltip" class="absolute hidden bg-slate-800 text-white text-sm rounded-lg px-3 py-2" style="pointer-events: none;"></div>
+        </div>
+         <div class="mt-16 text-center text-sm text-slate-500 italic">
+            <p>The gut and brain are in constant communication. An imbalance (dysbiosis) in the gut can directly impact metabolism, immunity, mood, and behavior, making its restoration the first step to true wellness.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: The Solution -->
+<section id="solution" class="py-16 md:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-slate-900">The Solution: The Gut-Mind Reset Program (GMRP)</h2>
+            <p class="mt-3 max-w-2xl mx-auto text-md text-slate-600">The report proposes the GMRP, a 12-18 month framework to systematically restore the gut-mind axis. Explore the three distinct phases of the program using the tabs below to understand how the solution is structured for sustainable, long-term results.</p>
+        </div>
+        
+        <div class="mt-12 max-w-4xl mx-auto">
+            <div class="border-b border-slate-200">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                   <button data-tab="phase1" class="gmrp-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Phase 1: Reset</button>
+                   <button data-tab="phase2" class="gmrp-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Phase 2: Habit Formation</button>
+                   <button data-tab="phase3" class="gmrp-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Phase 3: Maintenance</button>
+                </nav>
+            </div>
+            <div class="mt-8">
+                <div id="phase1" class="gmrp-content">
+                    <div class="bg-white p-8 rounded-2xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-teal-600">Phase 1: Microbiome and Metabolic Reset</h3>
+                        <p class="mt-2 text-sm font-medium text-slate-500">Duration: Months 1–3</p>
+                        <p class="mt-4 text-slate-600">This initial phase focuses on eliminating inflammatory triggers and intensely nourishing the gut. Through a whole-foods, high-fiber diet and targeted supplementation (probiotics, prebiotics, vitamins, minerals), the primary goal is to correct dysbiosis and replete nutrient deficiencies, creating a stable foundation for future progress. Intermittent fasting is intentionally avoided to prevent additional stress on the body.</p>
+                    </div>
+                </div>
+                <div id="phase2" class="gmrp-content hidden">
+                    <div class="bg-white p-8 rounded-2xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-sky-600">Phase 2: Habit Formation with Phased IF</h3>
+                        <p class="mt-2 text-sm font-medium text-slate-500">Duration: Months 4–9</p>
+                        <p class="mt-4 text-slate-600">Once the gut is stabilized, this phase introduces intermittent fasting (IF) as a tool to enhance metabolic flexibility and cellular repair. IF is introduced gradually (e.g., starting with 12:12 once per week) and is supported by digital Cognitive Behavioral Therapy (CBT) to manage hunger cues and solidify new habits.</p>
+                    </div>
+                </div>
+                <div id="phase3" class="gmrp-content hidden">
+                    <div class="bg-white p-8 rounded-2xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-slate-700">Phase 3: Long-Term Maintenance</h3>
+                        <p class="mt-2 text-sm font-medium text-slate-500">Duration: Months 10–18 and Beyond</p>
+                        <p class="mt-4 text-slate-600">The final phase transitions the user to a sustainable, flexible lifestyle. The program adapts to a maintenance protocol with less reliance on supplementation and more emphasis on intuitive eating within the established healthy framework, ensuring long-term adherence and resilience.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: The Engine -->
+<section id="engine" class="py-16 md:py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-slate-900">The Engine: Agentic AI Orchestration</h2>
+             <p class="mt-3 max-w-2xl mx-auto text-md text-slate-600">The GMRP framework provides the "what," but WellnessAI provides the "how." This is achieved through a multi-agent AI system that personalizes the program, adapts dynamically, and incorporates expert human oversight. The diagram below illustrates this powerful feedback loop.</p>
+        </div>
+        
+        <div class="mt-12 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 items-center gap-8 text-center font-medium">
+            <div class="bg-slate-100 p-6 rounded-lg shadow">
+                <p class="text-sky-600 text-3xl mb-2">①</p>
+                <h4 class="text-lg font-bold text-slate-800">Data Synthesis</h4>
+                <p class="text-sm text-slate-600">Health Quiz, Wearables, Lab Results, User Logs</p>
+            </div>
+            
+            <div class="hidden md:block text-slate-400 text-4xl font-light">&rarr;</div>
+            <div class="md:hidden text-slate-400 text-4xl font-light">&darr;</div>
+
+            <div class="bg-slate-100 p-6 rounded-lg shadow">
+                <p class="text-teal-600 text-3xl mb-2">②</p>
+                <h4 class="text-lg font-bold text-slate-800">AI Personalization</h4>
+                <p class="text-sm text-slate-600">Multi-agent system adapts GMRP to your unique data</p>
+            </div>
+        </div>
+
+        <div class="my-8 flex justify-end max-w-2xl mx-auto text-center font-medium">
+             <div class="text-slate-400 text-4xl font-light transform rotate-90 md:rotate-0">&darr;</div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 items-center gap-8 text-center font-medium md:grid-flow-col-dense">
+            <div class="md:col-start-3 bg-slate-100 p-6 rounded-lg shadow">
+                <p class="text-indigo-600 text-3xl mb-2">③</p>
+                <h4 class="text-lg font-bold text-slate-800">Dynamic Plan</h4>
+                <p class="text-sm text-slate-600">Daily recommendations for diet, exercise, and CBT</p>
+            </div>
+
+            <div class="hidden md:block text-slate-400 text-4xl font-light">&larr;</div>
+            <div class="md:hidden text-slate-400 text-4xl font-light">&darr;</div>
+            
+            <div class="bg-slate-100 p-6 rounded-lg shadow">
+                <p class="text-rose-600 text-3xl mb-2">④</p>
+                <h4 class="text-lg font-bold text-slate-800">Human-in-the-Loop</h4>
+                <p class="text-sm text-slate-600">Health professionals can review and override any suggestion</p>
+            </div>
+        </div>
+         <div class="mt-12 text-center text-sm text-slate-500 italic">
+            <p>This closed-loop system ensures the plan is not only hyper-personalized but also safe, adaptive, and guided by both AI precision and human expertise. This is the core of the WellnessAI platform.</p>
+        </div>
+    </div>
+</section>
+</body></html>
