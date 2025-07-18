@@ -1,6 +1,6 @@
 import { StateGraph, END } from '@langchain/langgraph';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
-import { llmGateway } from '../services/llmGateway';
+import { llmGateway } from '../services/enhancedllmGateway';
 import { wellnessAgentPrompt, nutritionAgentPrompt, cbtAgentPrompt } from './prompts';
 import { WellnessGraphState } from './wellnessGraph.state';
 

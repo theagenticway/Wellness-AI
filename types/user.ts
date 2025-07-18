@@ -1,131 +1,134 @@
-export type UserType = 'member' | 'professional';
-
+// types/user.ts
 export interface User {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  type: UserType;
-  createdAt: Date;
-  // Member specific fields
+  type: 'member' | 'professional';
+  
+  // Profile Information
   age?: number;
-  height?: number;
-  weight?: number;
-  activityLevel?: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active';
-  fitnessGoals?: string[];
-  dietaryPreferences?: string[];
+  gender?: 'male' | 'female' | 'non-binary' | 'not-specified';
+  dateOfBirth?: string;
+  
+  // GMRP Program Details
+  currentPhase: 'phase1' | 'phase2' | 'phase3';
+  startDate?: string;
+  programGoals: string[];
+  healthGoals?: string[];
+  
+  // Health Information
   healthConditions?: string[];
-  currentPhase?: 'phase1' | 'phase2' | 'phase3';
-  // Professional specific fields
-  licenseNumber?: string;
-  specialties?: string[];
-  clients?: string[];
+  medications?: string[];
+  allergies?: string[];
+  
+  // Preferences
+  dietaryPreferences?: string[];
+  exercisePreferences?: string[];
+  communicationPreferences?: {
+    frequency: 'daily' | 'weekly' | 'bi-weekly';
+    style: 'detailed' | 'concise' | 'motivational';
+    preferredTime: 'morning' | 'afternoon' | 'evening';
+  };
+  
+  // Progress Tracking
+  metrics?: {
+    weight?: number;
+    height?: number;
+    bmi?: number;
+    bodyFat?: number;
+  };
+  
+  // App Settings
+  preferences: {
+    notifications: boolean;
+    darkMode: boolean;
+    language: string;
+  };
+  
+  // Professional-specific fields
+  credentials?: string[];
+  specializations?: string[];
+  clientIds?: string[];
+  
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
 }
 
 export interface HealthMetrics {
-  date: Date;
+  date: string;
   weight?: number;
-  bloodPressure?: {
-    systolic: number;
-    diastolic: number;
-  };
-  heartRate?: number;
   sleepHours?: number;
-  stressLevel?: number;
-  mood?: number;
+  sleepQuality?: number; // 1-10 scale
+  energyLevel?: number; // 1-10 scale
+  stressLevel?: number; // 1-10 scale
+  digestiveHealth?: number; // 1-10 scale
+  moodRating?: number; // 1-10 scale
+  adherenceRate?: number; // percentage
+  symptoms?: string[];
+  notes?: string;
 }
 
-export interface WorkoutPlan {
-  id: string;
-  name: string;
-  duration: number; // minutes
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  exercises: Exercise[];
-  videoUrl?: string;
-}
-
-export interface Exercise {
-  id: string;
-  name: string;
-  sets: number;
-  reps: number;
-  duration?: number; // seconds for time-based exercises
-  restTime: number; // seconds
-  equipment?: string[];
-  targetMuscles: string[];
-  instructions: string[];
-}
-
-export interface MealPlan {
-  id: string;
-  name: string;
+export interface UserProgress {
+  userId: string;
   phase: 'phase1' | 'phase2' | 'phase3';
-  meals: Meal[];
-  totalCalories: number;
-  macros: {
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-  };
+  weekNumber: number;
+  progressScore: number;
+  completedTasks: number;
+  totalTasks: number;
+  metrics: HealthMetrics;
+  milestones: string[];
+  challenges: string[];
+  recommendations: string[];
+  nextPhaseReadiness?: number; // percentage
 }
 
-export interface Meal {
-  id: string;
-  name: string;
-  type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  ingredients: Ingredient[];
-  instructions: string[];
-  prepTime: number; // minutes
-  calories: number;
-  macros: {
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-  };
-}
-
-export interface Ingredient {
-  name: string;
-  amount: number;
-  unit: string;
-  calories: number;
-}
-
-export interface Supplement {
-  id: string;
-  name: string;
-  dosage: string;
-  timing: string[];
-  reason: string;
-  phase: 'phase1' | 'phase2' | 'phase3';
-  priority: 'essential' | 'recommended' | 'optional';
-}
-
-export interface MeditationSession {
+export interface UserGoal {
   id: string;
   title: string;
-  duration: number; // minutes
-  type: 'mindfulness' | 'breathing' | 'body_scan' | 'loving_kindness' | 'sleep';
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  audioUrl: string;
   description: string;
+  category: 'nutrition' | 'exercise' | 'mindfulness' | 'sleep' | 'stress';
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  deadline?: string;
+  status: 'active' | 'completed' | 'paused';
+  priority: 'high' | 'medium' | 'low';
 }
 
-export interface CBTSession {
-  id: string;
-  title: string;
-  type: 'craving_management' | 'habit_formation' | 'if_education' | 'stress_management';
-  completed: boolean;
-  progress: number; // 0-100
-  exercises: CBTExercise[];
-}
-
-export interface CBTExercise {
-  id: string;
-  type: 'thought_record' | 'behavior_tracking' | 'goal_setting' | 'reflection';
-  question: string;
-  response?: string;
-  completed: boolean;
+// Form interfaces for onboarding
+export interface OnboardingData {
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    age: number;
+    gender: string;
+  };
+  healthInfo: {
+    currentPhase: 'phase1' | 'phase2' | 'phase3';
+    healthGoals: string[];
+    healthConditions: string[];
+    medications: string[];
+    allergies: string[];
+  };
+  lifestyle: {
+    dietaryPreferences: string[];
+    exercisePreferences: string[];
+    sleepSchedule: {
+      bedtime: string;
+      wakeTime: string;
+    };
+    stressLevel: number;
+  };
+  preferences: {
+    communicationStyle: string;
+    notificationPreferences: {
+      daily: boolean;
+      weekly: boolean;
+      reminders: boolean;
+    };
+  };
 }

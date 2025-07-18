@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellnessAI - AI Backend Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">WellnessAI - Real AI Backend Test</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- AI Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">🧠 AI Test</h2>
+                <button onclick="testAI()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Test AI Generation
+                </button>
+                <div id="ai-result" class="mt-4 p-4 bg-gray-100 rounded hidden"></div>
+            </div>
+
+            <!-- Wellness Plan -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">🏥 GMRP Wellness Plan</h2>
+                <button onclick="getWellnessPlan()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Generate Daily Plan
+                </button>
+                <div id="wellness-result" class="mt-4 p-4 bg-gray-100 rounded hidden"></div>
+            </div>
+
+            <!-- Nutrition Plan -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">🥗 Nutrition Plan</h2>
+                <button onclick="getNutritionPlan()" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+                    Generate Meal Plan
+                </button>
+                <div id="nutrition-result" class="mt-4 p-4 bg-gray-100 rounded hidden"></div>
+            </div>
+
+            <!-- Health Check -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">💚 System Health</h2>
+                <button onclick="checkHealth()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Check Backend Status
+                </button>
+                <div id="health-result" class="mt-4 p-4 bg-gray-100 rounded hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+
+        async function testAI() {
+            const resultDiv = document.getElementById('ai-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-blue-600">🧠 Testing AI generation...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/test-ai`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="text-green-600 font-semibold">✅ AI Test Successful!</div>
+                    <div class="mt-2 text-sm">${data.ai_response}</div>
+                    <div class="mt-2 text-xs text-gray-500">Model: ${data.model}</div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function getWellnessPlan() {
+            const resultDiv = document.getElementById('wellness-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-green-600">🏥 Generating personalized wellness plan...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/wellness/daily-plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userProfile: {
+                            age: 35,
+                            gender: 'female',
+                            currentPhase: 'phase1',
+                            healthGoals: ['improve-gut-health', 'increase-energy']
+                        },
+                        healthMetrics: {
+                            sleepHours: 7,
+                            energyLevel: 6,
+                            stressLevel: 5
+                        }
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold">✅ Wellness Plan Generated!</div>
+                        <div class="mt-2"><strong>Greeting:</strong> ${data.data.greeting}</div>
+                        <div class="mt-2"><strong>Phase Guidance:</strong> ${data.data.phaseGuidance}</div>
+                        <div class="mt-2"><strong>Daily Tasks:</strong></div>
+                        <ul class="ml-4 list-disc">
+                            ${data.data.dailyPlan?.map(task => `<li class="text-sm">${task.title}</li>`).join('') || 'No tasks available'}
+                        </ul>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="text-orange-600">⚠️ Using fallback plan: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function getNutritionPlan() {
+            const resultDiv = document.getElementById('nutrition-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-orange-600">🥗 Generating nutrition plan...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/wellness/nutrition-plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userProfile: {
+                            age: 35,
+                            currentPhase: 'phase1',
+                            healthGoals: ['improve-gut-health']
+                        },
+                        dietaryPreferences: ['vegetarian']
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold">✅ Nutrition Plan Generated!</div>
+                        <div class="mt-2"><strong>Breakfast:</strong> ${data.data.mealPlan?.breakfast || 'Not available'}</div>
+                        <div class="mt-2"><strong>Lunch:</strong> ${data.data.mealPlan?.lunch || 'Not available'}</div>
+                        <div class="mt-2"><strong>Dinner:</strong> ${data.data.mealPlan?.dinner || 'Not available'}</div>
+                        <div class="mt-2"><strong>Fiber Target:</strong> ${data.data.fiberBreakdown?.target || 'N/A'}g daily</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="text-orange-600">⚠️ Error: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-purple-600">💚 Checking system health...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="text-green-600 font-semibold">✅ System Healthy!</div>
+                    <div class="mt-2 text-sm">Status: ${data.status}</div>
+                    <div class="text-sm">Version: ${data.version}</div>
+                    <div class="text-sm">Uptime: ${Math.round(data.uptime)}s</div>
+                    <div class="text-sm">Services: ${Object.entries(data.services).map(([k,v]) => `${k}: ${v}`).join(', ')}</div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ Backend not responding: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-check health on page load
+        window.onload = () => {
+            checkHealth();
+        };
+    </script>
+</body>
+</html>

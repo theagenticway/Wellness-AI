@@ -7,22 +7,22 @@
   "agentModelMapping": {
     "wellnessAgent": {
       "provider": "google",
-      "model": "gemini-pro",
+      "model": "gemini-2.5-pro",
       "temperature": 0.5
     },
     "nutritionAgent": {
       "provider": "google",
-      "model": "gemini-pro",
+      "model": "gemini-2.5-pro",
       "temperature": 0.7
     },
     "cbtAgent": {
       "provider": "google",
-      "model": "gemini-pro",
+      "model": "gemini-2.5-pro",
       "temperature": 0.2
     },
     "communityAgent": {
       "provider": "google",
-      "model": "gemini-pro",
+      "model": "gemini-2.5-pro",
       "temperature": 0.9
     }
   }
