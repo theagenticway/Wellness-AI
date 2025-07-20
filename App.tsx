@@ -1,70 +1,70 @@
-import { useState, useEffect } from 'react';
+// App.tsx - REPLACE EXISTING FILE
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { OnboardingFlow } from './components/OnboardingFlow';
-import { User } from './types/user';
-import { BottomNavBar } from './components/BottomNavBar';
+import { AuthProvider, useAuth } from './src/providers/AuthProvider';
+import { AuthScreen } from './screens/AuthScreen';
+import { DashboardScreen } from './screens/DashboardScreen';
 import { ProgressScreen } from './screens/ProgressScreen';
 import { CommunityModule } from './components/CommunityModule';
-import { DashboardScreen } from './screens/DashboardScreen';
 import { ClientsScreen } from './screens/ClientsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SupplementationModule } from './components/SupplementationModule';
+import { BottomNavBar } from './components/BottomNavBar';
+import { ProfessionalDashboard } from './components/ProfessionalDashboard';
+import { Loader2 } from 'lucide-react';
 
-export default function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-
-  useEffect(() => {
-    // Check for existing user session
-    try {
-      const savedUser = localStorage.getItem('wellnessAppUser');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        setCurrentUser(user);
-        setIsOnboardingComplete(true);
-      }
-    } catch (error) {
-      console.error('Error loading saved user:', error);
-      localStorage.removeItem('wellnessAppUser');
-    }
-  }, []);
-
-  const handleOnboardingComplete = (user: User) => {
-    setCurrentUser(user);
-    setIsOnboardingComplete(true);
-    try {
-      localStorage.setItem('wellnessAppUser', JSON.stringify(user));
-    } catch (error) {
-      console.error('Error saving user:', error);
-    }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setIsOnboardingComplete(false);
-    localStorage.removeItem('wellnessAppUser');
-  };
-
-  if (!currentUser || !isOnboardingComplete) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+function AppContent() {
+  const { user, loading, isAuthenticated } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+          <div>
+            <p className="text-lg font-medium text-gray-900">Loading WellnessAI...</p>
+            <p className="text-sm text-gray-600">Connecting to behavioral AI system</p>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  if (!isAuthenticated || !user) {
+    return <AuthScreen />;
+  }
+
+  // Render different dashboards based on user type
+  const renderDashboard = () => {
+    if (user.type === 'PROFESSIONAL' || user.type === 'ADMIN') {
+      return <ProfessionalDashboard user={user} />;
+    }
+    return <DashboardScreen user={user} />;
+  };
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 font-sans">
+      <div className="min-h-screen bg-gray-50 font-sans">
         <main className="pb-20">
           <Routes>
-            <Route path="/" element={<DashboardScreen user={currentUser} />} />
-            <Route path="/progress" element={<ProgressScreen user={currentUser} />} />
-            <Route path="/community" element={<CommunityModule user={currentUser} />} />
+            <Route path="/" element={renderDashboard()} />
+            <Route path="/progress" element={<ProgressScreen user={user} />} />
+            <Route path="/community" element={<CommunityModule user={user} />} />
             <Route path="/clients" element={<ClientsScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />
-            <Route path="/supplements" element={<SupplementationModule user={currentUser} />} />
-            {/* Define other routes here as components are created */}
+            <Route path="/supplements" element={<SupplementationModule user={user} />} />
           </Routes>
         </main>
         <BottomNavBar />
       </div>
     </Router>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

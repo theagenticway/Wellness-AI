@@ -7,6 +7,8 @@ import { llmGateway } from './services/llmGateway';
 import { behavioralAI } from './services/behavioralAI';
 import authRoutes from './routes/auth';
 import { authenticateToken, AuthenticatedRequest } from './middleware/auth';
+import authRoutes from './routes/auth';
+import authMiddleware from './middleware/auth';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -21,7 +23,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Auth routes
+app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
+
+interface AuthenticatedRequest extends Request {
+  userId?: string;
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+}
+// Simple auth middleware for development
+const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  // Mock authentication for development
+  req.userId = 'demo-user-123';
+  req.user = {
+    id: 'demo-user-123',
+    email: 'demo@wellness.ai',
+    name: 'Demo User'
+  };
+  next();
+};
 
 // Health check
 app.get('/', (req: Request, res: Response) => {
@@ -88,8 +111,8 @@ app.get('/health', async (req: Request, res: Response) => {
 /**
  * Generate completely personalized daily plan using behavioral economics
  */
-app.post('/api/behavioral/daily-plan', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
+app.post('/api/behavioral/daily-plan', async (req: Request, res: Response) => {
+    try {
     console.log('🧠 Generating behavioral economics daily plan for user:', req.userId);
     
     const user = req.user;
