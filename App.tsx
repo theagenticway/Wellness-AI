@@ -17,6 +17,8 @@ function AppContent() {
   const { user, isAuthenticated, isLoading, logout, completeOnboarding } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  console.log('AppContent rendered', { user, isAuthenticated, isLoading, showOnboarding });
+
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
@@ -33,11 +35,32 @@ function AppContent() {
   if (showOnboarding) {
     return (
       <OnboardingFlow 
-        onComplete={(userData) => {
-          completeOnboarding(userData);
-          setShowOnboarding(false);
+        onComplete={async (userData, onboardingData) => {
+          try {
+            // Submit onboarding data to backend
+            const response = await fetch('http://localhost:3001/api/onboarding/submit', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(onboardingData),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log('Onboarding submitted successfully:', result);
+              completeOnboarding(userData);
+              setShowOnboarding(false);
+            } else {
+              throw new Error('Failed to submit onboarding data');
+            }
+          } catch (error) {
+            console.error('Onboarding submission error:', error);
+            // Still complete onboarding in frontend for now
+            completeOnboarding(userData);
+            setShowOnboarding(false);
+          }
         }}
-        onBack={() => setShowOnboarding(false)}
       />
     );
   }
@@ -79,7 +102,7 @@ function AppContent() {
                   {user?.firstName} {user?.lastName}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">
-                  {user?.role} • Phase {user?.currentPhase?.replace('phase', '')}
+                  {user?.type} • Phase {user?.currentPhase?.replace('phase', '')}
                 </p>
               </div>
             </div>
@@ -112,6 +135,7 @@ function AppContent() {
 }
 
 export default function App() {
+  console.log('App component rendering...');
   return (
     <AuthProvider>
       <AppContent />

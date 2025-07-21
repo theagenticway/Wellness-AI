@@ -113,5 +113,16 @@ export const wellnessAPI = {
 
   checkHealth: async () => {
     return apiCall(API_CONFIG.ENDPOINTS.HEALTH);
+  },
+
+  getWellnessPlan: async (userProfile: any, healthMetrics: any = {}) => {
+    return apiCall(API_CONFIG.ENDPOINTS.WELLNESS.DAILY_PLAN, {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: userProfile.id, 
+        userProfile,
+        healthMetrics
+      })
+    });
   }
 };

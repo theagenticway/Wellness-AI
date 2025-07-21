@@ -16,8 +16,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Make port 5173 available to the world outside this container
-EXPOSE 5173
+# Make port 4173 available to the world outside this container
+EXPOSE 4173
 
 # Define the command to run the app
-CMD [ "npm", "run", "preview" ]
+CMD [ "npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "4173" ]

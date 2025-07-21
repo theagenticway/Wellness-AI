@@ -1,10 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth, getDemoCredentials } from '../src/providers/AuthProvider';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Alert, AlertDescription } from './ui/alert';
-import { Loader2, User, Lock, Info } from 'lucide-react';
 
 export function LoginScreen() {
   const { login, isLoading } = useAuth();
@@ -13,8 +8,11 @@ export function LoginScreen() {
   const [error, setError] = useState('');
   const [showDemoInfo, setShowDemoInfo] = useState(true);
 
+  console.log('LoginScreen rendered', { email, password, isLoading, showDemoInfo });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted', { email, password });
     setError('');
 
     if (!email || !password) {
@@ -29,6 +27,7 @@ export function LoginScreen() {
   };
 
   const fillDemoCredentials = (demoEmail: string, demoPassword: string) => {
+    console.log('fillDemoCredentials called', { demoEmail, demoPassword });
     setEmail(demoEmail);
     setPassword(demoPassword);
     setError('');
@@ -36,119 +35,308 @@ export function LoginScreen() {
 
   const demoCredentials = getDemoCredentials();
 
+  // Define all styles as objects to ensure they apply
+  const containerStyle: React.CSSProperties = {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    fontFamily: 'system-ui, -apple-system, sans-serif'
+  };
+
+  const mainContentStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '400px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  };
+
+  const headerStyle: React.CSSProperties = {
+    textAlign: 'center'
+  };
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    margin: '0 0 8px 0'
+  };
+
+  const subtitleStyle: React.CSSProperties = {
+    color: '#6b7280',
+    margin: '0 0 16px 0'
+  };
+
+  const debugButtonStyle: React.CSSProperties = {
+    background: '#dc2626',
+    color: 'white',
+    padding: '12px 24px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '14px'
+  };
+
+  const demoBoxStyle: React.CSSProperties = {
+    border: '2px solid #bfdbfe',
+    backgroundColor: '#eff6ff',
+    borderRadius: '8px',
+    padding: '16px'
+  };
+
+  const demoHeaderStyle: React.CSSProperties = {
+    fontWeight: 'bold',
+    marginBottom: '12px',
+    color: '#1f2937'
+  };
+
+  const demoButtonStyle: React.CSSProperties = {
+    color: '#2563eb',
+    textDecoration: 'underline',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '4px',
+    fontSize: '14px'
+  };
+
+  const hideButtonStyle: React.CSSProperties = {
+    color: '#6b7280',
+    fontSize: '12px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '4px',
+    marginTop: '8px'
+  };
+
+  const formBoxStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e5e7eb'
+  };
+
+  const formStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '6px'
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    border: '2px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '16px',
+    backgroundColor: 'white',
+    boxSizing: 'border-box',
+    outline: 'none'
+  };
+
+  const inputFocusStyle: React.CSSProperties = {
+    ...inputStyle,
+    borderColor: '#2563eb',
+    boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.1)'
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    border: '2px solid #2563eb',
+    borderRadius: '6px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  };
+
+  const buttonHoverStyle: React.CSSProperties = {
+    ...buttonStyle,
+    backgroundColor: '#1d4ed8',
+    borderColor: '#1d4ed8'
+  };
+
+  const errorStyle: React.CSSProperties = {
+    border: '2px solid #fecaca',
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+    padding: '12px',
+    borderRadius: '6px',
+    fontSize: '14px'
+  };
+
+  const footerStyle: React.CSSProperties = {
+    textAlign: 'center',
+    fontSize: '14px',
+    color: '#6b7280'
+  };
+
+  const linkButtonStyle: React.CSSProperties = {
+    color: '#059669',
+    fontWeight: '500',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    padding: '4px',
+    fontSize: '14px'
+  };
+
+  const greenButtonStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: '16px',
+    right: '16px',
+    backgroundColor: '#059669',
+    color: 'white',
+    border: '2px solid #059669',
+    borderRadius: '6px',
+    padding: '12px 16px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div style={containerStyle}>
+      <div style={mainContentStyle}>
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">WellnessAI</h1>
-          <p className="text-gray-600">Sign in to your wellness journey</p>
+        <div style={headerStyle}>
+          <h1 style={titleStyle}>WellnessAI</h1>
+          <p style={subtitleStyle}>Sign in to your wellness journey</p>
+          
+          {/* DEBUG BUTTON */}
+          <button 
+            style={debugButtonStyle}
+            onClick={() => {
+              console.log('DEBUG: Simple button clicked!');
+              alert('Button works!');
+            }}
+          >
+            🔴 DEBUG CLICK TEST
+          </button>
         </div>
 
         {/* Demo Credentials Info */}
         {showDemoInfo && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">Demo Accounts Available:</p>
-                {demoCredentials.map((cred, index) => (
-                  <div key={index} className="text-sm">
-                    <button
-                      type="button"
-                      onClick={() => fillDemoCredentials(cred.email, cred.password)}
-                      className="text-blue-600 hover:text-blue-800 underline mr-2"
-                    >
-                      {cred.email}
-                    </button>
-                    <span className="text-gray-500">({cred.role})</span>
-                  </div>
-                ))}
+          <div style={demoBoxStyle}>
+            <div style={demoHeaderStyle}>Demo Accounts Available:</div>
+            
+            {demoCredentials.map((cred, index) => (
+              <div key={index} style={{ margin: '8px 0' }}>
                 <button
-                  type="button"
-                  onClick={() => setShowDemoInfo(false)}
-                  className="text-xs text-gray-500 hover:text-gray-700 mt-2"
+                  style={demoButtonStyle}
+                  onClick={() => {
+                    console.log('Demo credential clicked:', cred.email);
+                    fillDemoCredentials(cred.email, 'demo123');
+                  }}
                 >
-                  Hide demo info
+                  {cred.email}
                 </button>
+                <span style={{ color: '#6b7280', marginLeft: '8px' }}>({cred.role})</span>
               </div>
-            </AlertDescription>
-          </Alert>
+            ))}
+            
+            <button
+              style={hideButtonStyle}
+              onClick={() => {
+                console.log('Hide demo info clicked');
+                setShowDemoInfo(false);
+              }}
+            >
+              Hide demo info
+            </button>
+          </div>
         )}
 
         {/* Login Form */}
-        <Card className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="pl-10"
-                  disabled={isLoading}
-                />
-              </div>
+        <div style={formBoxStyle}>
+          <form style={formStyle} onSubmit={handleSubmit}>
+            {/* Email Field */}
+            <div>
+              <label style={labelStyle} htmlFor="email">Email</label>
+              <input
+                style={inputStyle}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  console.log('Email changed:', e.target.value);
+                  setEmail(e.target.value);
+                }}
+                placeholder="Enter your email"
+                disabled={isLoading}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
+              />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="pl-10"
-                  disabled={isLoading}
-                />
-              </div>
+            {/* Password Field */}
+            <div>
+              <label style={labelStyle} htmlFor="password">Password</label>
+              <input
+                style={inputStyle}
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  console.log('Password changed');
+                  setPassword(e.target.value);
+                }}
+                placeholder="Enter your password"
+                disabled={isLoading}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
+              />
             </div>
 
+            {/* Error Message */}
             {error && (
-              <Alert className="border-red-200 bg-red-50">
-                <AlertDescription className="text-red-700">
-                  {error}
-                </AlertDescription>
-              </Alert>
+              <div style={errorStyle}>
+                {error}
+              </div>
             )}
 
-            <Button
+            {/* Submit Button */}
+            <button
               type="submit"
-              className="w-full"
+              style={buttonStyle}
               disabled={isLoading}
+              onClick={() => console.log('Submit button clicked')}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, buttonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, buttonStyle)}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </Button>
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </button>
           </form>
-        </Card>
+        </div>
 
         {/* Footer */}
-        <div className="text-center text-sm text-gray-500">
-          <p>Don't have an account?</p>
+        <div style={footerStyle}>
+          <p style={{ margin: '0 0 8px 0' }}>Don't have an account?</p>
           <button 
-            type="button"
-            className="text-green-600 hover:text-green-800 font-medium"
+            style={linkButtonStyle}
             onClick={() => {
-              // This would trigger the onboarding flow
-              // For now, we'll just show instructions
+              console.log('Complete Wellness Quiz clicked!');
               alert('Complete the onboarding quiz to create your account!');
             }}
           >
@@ -156,6 +344,17 @@ export function LoginScreen() {
           </button>
         </div>
       </div>
+
+      {/* Fixed Bottom Button */}
+      <button 
+        style={greenButtonStyle}
+        onClick={() => {
+          console.log('New User button clicked!');
+          alert('Starting onboarding quiz!');
+        }}
+      >
+        👤 New User? Start Quiz
+      </button>
     </div>
   );
 }

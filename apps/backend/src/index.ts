@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import { llmGateway } from './services/llmGateway';
 import { behavioralAI } from './services/behavioralAI';
 import authRoutes from './routes/auth';
+import onboardingRoutes from './routes/onboarding';
 import { authenticateToken, AuthenticatedRequest, authMiddleware } from './middleware/auth';
 
 const app = express();
@@ -27,6 +28,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Auth routes
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
+
+// Onboarding routes
+app.use('/api/onboarding', onboardingRoutes);
 
 interface AuthenticatedRequest extends Request {
   userId?: string;
@@ -66,7 +70,7 @@ app.get('/', (req: Request, res: Response) => {
       'behavioral-daily-plan': '/api/behavioral/daily-plan',
       'habit-tracking': '/api/habits/*',
       'nudges': '/api/nudges/*',
-      'progress-analytics': '/api/analytics/*'
+      'progress-analytics': '/api/analytics/progress'
     },
     timestamp: new Date().toISOString()
   });
@@ -756,6 +760,46 @@ app.get('/api/habits/recommendations', authenticateToken, async (req: Authentica
     });
   }
 });
+
+// Progress analytics endpoint
+app.post('/api/analytics/progress', async (req: Request, res: Response) => {
+  try {
+    console.log('📊 Analyzing progress...');
+    const { userProfile, recentActivities = [], healthMetrics = {} } = req.body;
+    
+    // Mock progress analysis for now
+    const mockProgress = {
+      overallScore: 78,
+      trends: {
+        nutrition: "improving",
+        exercise: "steady", 
+        sleep: "needs_attention"
+      },
+      achievements: [
+        "Completed 5-day hydration streak",
+        "Improved fiber intake by 20%"
+      ],
+      recommendations: [
+        "Try to get 30 more minutes of sleep",
+        "Add one more serving of vegetables daily"
+      ],
+      nextPhaseReadiness: userProfile?.currentPhase === 'phase1' ? 65 : 0
+    };
+    
+    res.json({
+      success: true,
+      data: mockProgress,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Progress analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.post('/api/wellness/nutrition-plan', async (req: Request, res: Response) => {
   try {
     console.log('🥗 Generating nutrition plan...');
@@ -1198,7 +1242,8 @@ app.use((req: Request, res: Response) => {
       'GET /test-graph',
       'GET /api/wellness/daily-plan',
       'GET /api/behavioral/daily-plan',
-      'GET /api/nutrition/test'
+      'GET /api/nutrition/test',
+      'POST /api/analytics/progress'
     ],
     timestamp: new Date().toISOString()
   });
