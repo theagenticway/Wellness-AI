@@ -13,9 +13,6 @@ RUN npm install
 # Copy the backend application's code
 COPY apps/backend/ .
 
-# Copy types directory from project root
-COPY types/ ./types/
-
 # Generate Prisma client for Alpine Linux
 RUN npx prisma generate
 

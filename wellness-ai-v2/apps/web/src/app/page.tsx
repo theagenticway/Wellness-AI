@@ -3,6 +3,8 @@
 import styled from 'styled-components';
 import { theme } from '@/styles/theme';
 import { Layout, WellnessCard, ClientCard } from '@/components';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 
 const ContentSection = styled.div`
@@ -31,6 +33,7 @@ const SubTitle = styled.h3`
 
 export default function Home() {
   const [activeNav, setActiveNav] = useState('dashboard');
+  const { user } = useAuth();
 
   const todayActivities = [
     {
@@ -108,11 +111,13 @@ export default function Home() {
   };
 
   return (
-    <Layout 
-      activeNavItem={activeNav} 
-      onNavItemClick={setActiveNav}
-    >
-      {renderContent()}
-    </Layout>
+    <ProtectedRoute>
+      <Layout 
+        activeNavItem={activeNav} 
+        onNavItemClick={setActiveNav}
+      >
+        {renderContent()}
+      </Layout>
+    </ProtectedRoute>
   );
 }

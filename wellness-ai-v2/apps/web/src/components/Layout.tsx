@@ -3,6 +3,8 @@
 import styled from 'styled-components';
 import { theme } from '@/styles/theme';
 import { BottomNavigation } from './BottomNavigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,19 +33,78 @@ const Title = styled.h1`
   margin: 0 0 ${theme.spacing.md} 0;
 `;
 
-const SettingsButton = styled.button`
+const HeaderActions = styled.div`
   position: absolute;
   top: ${theme.spacing.lg};
   right: ${theme.spacing.lg};
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.md};
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.sm};
+  color: ${theme.colors.text.secondary};
+  font-size: ${theme.fontSize.sm};
+  
+  @media (max-width: 480px) {
+    display: none;
+  }
+`;
+
+const SettingsButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
   font-size: 24px;
   color: ${theme.colors.text.muted};
   transition: color 0.2s ease-in-out;
+  position: relative;
   
   &:hover {
     color: ${theme.colors.primary};
+  }
+`;
+
+const DropdownMenu = styled.div<{ show: boolean }>`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.border};
+  border-radius: ${theme.borderRadius.md};
+  box-shadow: ${theme.shadows.lg};
+  min-width: 150px;
+  z-index: ${theme.zIndex.dropdown};
+  opacity: ${({ show }) => show ? 1 : 0};
+  transform: ${({ show }) => show ? 'translateY(8px)' : 'translateY(4px)'};
+  pointer-events: ${({ show }) => show ? 'auto' : 'none'};
+  transition: all 0.2s ease-in-out;
+`;
+
+const DropdownItem = styled.button`
+  width: 100%;
+  padding: ${theme.spacing.md};
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: ${theme.fontSize.sm};
+  color: ${theme.colors.text.primary};
+  transition: background-color 0.2s ease-in-out;
+  
+  &:hover {
+    background: ${theme.colors.surface};
+  }
+  
+  &:first-child {
+    border-radius: ${theme.borderRadius.md} ${theme.borderRadius.md} 0 0;
+  }
+  
+  &:last-child {
+    border-radius: 0 0 ${theme.borderRadius.md} ${theme.borderRadius.md};
   }
 `;
 
@@ -69,11 +130,29 @@ export const Layout: React.FC<LayoutProps> = ({
   activeNavItem = 'dashboard',
   onNavItemClick = () => {},
 }) => {
+  const { user, logout } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+
   return (
     <LayoutContainer>
       <Header>
         <Title>Dashboard</Title>
-        <SettingsButton>⚙️</SettingsButton>
+        <HeaderActions>
+          <UserInfo>
+            Welcome, {user?.name?.split(' ')[0] || 'User'}
+          </UserInfo>
+          <SettingsButton onClick={() => setShowDropdown(!showDropdown)}>
+            ⚙️
+          </SettingsButton>
+          <DropdownMenu show={showDropdown}>
+            <DropdownItem onClick={() => setShowDropdown(false)}>
+              Settings
+            </DropdownItem>
+            <DropdownItem onClick={logout}>
+              Logout
+            </DropdownItem>
+          </DropdownMenu>
+        </HeaderActions>
       </Header>
       
       <Main hasNavigation={showNavigation}>

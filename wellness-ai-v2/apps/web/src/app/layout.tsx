@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import StyledComponentsRegistry from "@/components/StyledComponentsRegistry";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 import { GlobalStyles } from "@/styles/GlobalStyles";
 import "./globals.css";
 
@@ -17,8 +18,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <StyledComponentsRegistry>
-          <GlobalStyles />
-          {children}
+          <SessionProvider>
+            <GlobalStyles />
+            {children}
+          </SessionProvider>
         </StyledComponentsRegistry>
       </body>
     </html>
