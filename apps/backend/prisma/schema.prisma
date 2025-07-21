@@ -1,0 +1,840 @@
+// apps/backend/prisma/schema.prisma - Behavioral Economics Enhanced
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  type            UserType  @default(MEMBER)
+  currentPhase    Phase     @default(PHASE1)
+  healthGoals     String[]
+  startDate       DateTime  @default(now())
+  timezone        String    @default("UTC")
+  isActive        Boolean   @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Behavioral Economics Profile
+  behaviorProfile BehaviorProfile?
+  
+  // Relationships
+  healthProfile   HealthProfile?
+  habits          Habit[]
+  habitLogs       HabitLog[]
+  nudges          Nudge[]
+  streaks         Streak[]
+  rewards         Reward[]
+  challenges      UserChallenge[]
+  
+  // AI Generated Content
+  dailyPlans      DailyPlan[]
+  nutritionPlans  NutritionPlan[]
+  exercisePlans   ExercisePlan[]
+  meditationPlans MeditationPlan[]
+  
+  // Progress and Analytics
+  progressEntries ProgressEntry[]
+  behaviorMetrics BehaviorMetric[]
+  
+  // Professional relationships
+  assignedProfessional User? @relation("ClientProfessional", fields: [professionalId], references: [id])
+  professionalId       String?
+  clients              User[] @relation("ClientProfessional")
+  overridesGiven       ProfessionalOverride[] @relation("OverrideGiver")
+  overridesReceived    ProfessionalOverride[] @relation("OverrideReceiver")
+  
+  @@map("users")
+}
+
+model BehaviorProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  
+  // Behavioral Economics Factors
+  motivationType        MotivationType @default(INTRINSIC) // intrinsic vs extrinsic motivation
+  lossAversion          Float    @default(2.5) // 1.0-5.0, higher = more loss averse
+  presentBias           Float    @default(0.7) // 0.0-1.0, lower = more present-biased
+  socialInfluence       Float    @default(0.5) // 0.0-1.0, higher = more influenced by social proof
+  gamificationResponse  Float    @default(0.6) // 0.0-1.0, response to points/badges
+  
+  // Habit Formation Preferences
+  optimalHabitStack     String[] // preferred habit stacking patterns
+  bestPerformanceTime   TimeOfDay[]
+  worstPerformanceTime  TimeOfDay[]
+  averageWillpower      Float    @default(5.0) // 1.0-10.0 throughout day
+  willpowerPattern      Json     // hourly willpower levels
+  
+  // Commitment Devices
+  publicCommitments     Boolean  @default(false)
+  financialStakes       Boolean  @default(false)
+  socialAccountability  Boolean  @default(true)
+  
+  // Nudge Preferences
+  reminderFrequency     ReminderFrequency @default(MODERATE)
+  nudgeStyle           NudgeStyle @default(ENCOURAGING)
+  responseToRewards    RewardResponse @default(BALANCED)
+  
+  // Behavioral Patterns (learned by AI)
+  sucessfulPatterns    Json?    // AI-identified successful behavior patterns
+  failurePatterns      Json?    // AI-identified failure patterns
+  optimalNudgeTiming   Json?    // AI-optimized nudge timing
+  personalTriggers     String[] // Environmental/emotional triggers
+  
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@map("behavior_profiles")
+}
+
+model Habit {
+  id                String   @id @default(cuid())
+  userId            String
+  category          HabitCategory
+  name              String
+  description       String?
+  
+  // Behavioral Design
+  cueType           CueType
+  cue               String   // specific environmental cue
+  routine           String   // the habit action
+  reward            String   // immediate reward/benefit
+  
+  // Difficulty & Progression
+  difficultyLevel   DifficultyLevel @default(TINY)
+  minimumVersion    String   // "2-minute rule" minimum
+  currentVersion    String   // current habit version
+  targetVersion     String   // ultimate goal
+  
+  // Scheduling
+  frequency         Frequency
+  timeOfDay         TimeOfDay[]
+  estimatedDuration Int      // minutes
+  contextRequired   String[] // environmental requirements
+  
+  // Behavioral Economics
+  implementationIntention String? // "When X happens, I will do Y"
+  habitStack        String?      // paired with existing habit
+  socialCommitment  String?      // public commitment text
+  
+  // AI Personalization
+  personalizedCue   String?      // AI-customized cue
+  personalizedReward String?     // AI-customized reward
+  aiOptimizations   Json?        // AI learning about this habit
+  
+  // Status
+  isActive          Boolean  @default(true)
+  startDate         DateTime @default(now())
+  pausedAt          DateTime?
+  completedAt       DateTime?
+  
+  // Relationships
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs              HabitLog[]
+  streaks           Streak[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("habits")
+}
+
+model HabitLog {
+  id                String   @id @default(cuid())
+  userId            String
+  habitId           String
+  date              DateTime @default(now())
+  
+  // Completion Data
+  completed         Boolean
+  quality           QualityRating? // how well was it done
+  effort            EffortLevel?   // how much effort required
+  enjoyment         EnjoymentLevel? // how enjoyable was it
+  
+  // Context
+  timeOfDay         TimeOfDay
+  locationContext   String?
+  emotionalState    EmotionalState?
+  energyLevel       Int?     // 1-10
+  stressLevel       Int?     // 1-10
+  
+  // Behavioral Insights
+  cueStrength       Int?     // 1-10, how strong was the cue
+  temptationLevel   Int?     // 1-10, how strong was resistance
+  socialInfluence   String?  // who was around, social context
+  
+  // AI Learning Data
+  automaticity      Int?     // 1-10, how automatic did it feel
+  identityAlignment Int?     // 1-10, how aligned with identity
+  
+  // Notes
+  notes             String?
+  challenges        String[]
+  wins              String[]
+  
+  // Relationships
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habit             Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  
+  @@map("habit_logs")
+}
+
+model Streak {
+  id              String   @id @default(cuid())
+  userId          String
+  habitId         String?  // null for composite streaks
+  
+  streakType      StreakType
+  currentCount    Int      @default(0)
+  longestCount    Int      @default(0)
+  startDate       DateTime
+  lastActiveDate  DateTime
+  
+  // Behavioral Economics
+  isPublic        Boolean  @default(false)
+  stakesAttached  Boolean  @default(false)
+  socialSharing   Boolean  @default(false)
+  
+  // AI Insights
+  riskLevel       RiskLevel @default(LOW) // AI-calculated risk of breaking
+  predictedEnd    DateTime? // AI prediction of streak end
+  interventions   Json?     // AI-suggested interventions
+  
+  // Status
+  isActive        Boolean  @default(true)
+  brokenAt        DateTime?
+  brokenReason    String?
+  
+  // Relationships
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habit           Habit?   @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("streaks")
+}
+
+model Nudge {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Nudge Design
+  nudgeType       NudgeType
+  title           String
+  message         String
+  actionRequired  String?  // specific action to take
+  
+  // Behavioral Trigger
+  triggerType     TriggerType
+  triggerValue    String   // specific trigger condition
+  
+  // Timing
+  scheduledFor    DateTime
+  deliveredAt     DateTime?
+  respondedAt     DateTime?
+  
+  // Personalization
+  personalizedContent String? // AI-customized message
+  contextualFactors   Json?   // environmental context
+  behavioralState     String? // user's current behavioral state
+  
+  // Response Tracking
+  response        NudgeResponse?
+  effectiveness   Float?   // 0.0-1.0, measured effectiveness
+  
+  // A/B Testing
+  variant         String?  // for testing different nudge approaches
+  cohort          String?  // behavioral cohort
+  
+  // Status
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime?
+  
+  // Relationships
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("nudges")
+}
+
+model Reward {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Reward Details
+  rewardType      RewardType
+  title           String
+  description     String
+  value           Float?   // points, monetary value, etc.
+  
+  // Earning Criteria
+  triggerEvent    String   // what action earned this reward
+  habitId         String?  // specific habit if applicable
+  streakMilestone Int?     // streak milestone if applicable
+  
+  // Behavioral Design
+  immediacy       ImmediateLevel // how immediately was it delivered
+  certainty       CertaintyLevel // how certain/variable
+  personalRelevance Float  @default(5.0) // 1.0-10.0, personal relevance
+  
+  // Status
+  isEarned        Boolean  @default(false)
+  earnedAt        DateTime?
+  isRedeemed      Boolean  @default(false)
+  redeemedAt      DateTime?
+  expiresAt       DateTime?
+  
+  // AI Optimization
+  predictedValue  Float?   // AI-predicted motivational value
+  actualImpact    Float?   // measured behavioral impact
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("rewards")
+}
+
+model Challenge {
+  id              String   @id @default(cuid())
+  
+  // Challenge Design
+  title           String
+  description     String
+  duration        Int      // days
+  category        HabitCategory
+  
+  // Behavioral Economics
+  difficulty      DifficultyLevel
+  socialElement   Boolean  @default(true)
+  competitiveElement Boolean @default(false)
+  
+  // Timing
+  startDate       DateTime
+  endDate         DateTime
+  registrationEnd DateTime
+  
+  // Rewards & Stakes
+  rewards         Json?    // challenge rewards
+  stakes          Json?    // what participants risk
+  
+  // Status
+  isActive        Boolean  @default(true)
+  maxParticipants Int?
+  currentParticipants Int @default(0)
+  
+  // Relationships
+  participants    UserChallenge[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("challenges")
+}
+
+model UserChallenge {
+  id              String   @id @default(cuid())
+  userId          String
+  challengeId     String
+  
+  // Participation
+  joinedAt        DateTime @default(now())
+  completedAt     DateTime?
+  dropgedAt       DateTime?
+  
+  // Progress
+  currentProgress Float    @default(0.0) // 0.0-1.0
+  dailyCheckins   Json?    // daily progress data
+  
+  // Social Features
+  publicProgress  Boolean  @default(true)
+  teamId          String?  // if team-based challenge
+  
+  // Behavioral Tracking
+  motivationLevel Int?     // 1-10, tracked over time
+  difficultyRating Int?    // 1-10, perceived difficulty
+  
+  // Results
+  finalRank       Int?
+  rewardsEarned   Json?
+  
+  // Relationships
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge       Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, challengeId])
+  @@map("user_challenges")
+}
+
+model DailyPlan {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime
+  phase           Phase
+  
+  // AI Generated Content - Personalized Daily
+  greeting        String
+  phaseGuidance   String
+  
+  // Behavioral Economics Integration
+  primaryFocus    String   // single most important habit today
+  tinyWins        Json     // 2-minute rule applications
+  habitStack      Json     // habit stacking opportunities
+  implementation  Json     // implementation intentions
+  
+  // Temptation Bundling
+  temptationPairs Json?    // pairing unpleasant tasks with pleasant ones
+  
+  // Social Proof Elements
+  communityStats  Json?    // "79% of users completed this yesterday"
+  peerComparisons Json?    // anonymous peer progress
+  
+  // Loss Aversion Applications
+  streakRisks     Json?    // "Don't break your 12-day streak!"
+  commitmentReminders Json? // public commitments user made
+  
+  // Personalized Nudges
+  scheduledNudges Json     // when and what nudges to send
+  contextualCues  Json     // environmental cue optimization
+  
+  // Completion Tracking
+  overallProgress Float    @default(0.0)
+  isCompleted     Boolean  @default(false)
+  completedAt     DateTime?
+  
+  // AI Learning
+  aiConfidence    Float?   // AI confidence in this plan
+  userSatisfaction Int?    // user rating of plan quality
+  behavioralFit   Float?   // how well it matched behavior profile
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, date])
+  @@map("daily_plans")
+}
+
+model BehaviorMetric {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime @default(now())
+  
+  // Behavioral Economics Metrics
+  willpowerUsed   Float?   // 0.0-1.0, daily willpower depletion
+  temptationLevel Float?   // 0.0-1.0, average temptation faced
+  automaticity    Float?   // 0.0-1.0, how automatic habits felt
+  
+  // Motivation Metrics
+  intrinsicMotivation Float? // 1.0-10.0
+  extrinsicMotivation Float? // 1.0-10.0
+  identityAlignment   Float? // 1.0-10.0, alignment with desired identity
+  
+  // Social Influence
+  socialSupport   Float?   // 1.0-10.0, perceived social support
+  peerPressure    Float?   // 1.0-10.0, positive peer influence
+  
+  // Environmental Factors
+  environmentQuality Float? // 1.0-10.0, how supportive environment was
+  cueStrength       Float?  // 1.0-10.0, average strength of habit cues
+  
+  // AI-Calculated Metrics
+  habitFormationVelocity Float? // rate of habit formation
+  behavioralMomentum     Float? // current behavioral momentum
+  changeReadiness        Float? // readiness for new habits
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("behavior_metrics")
+}
+
+// Continue with specialized plan tables...
+model NutritionPlan {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime
+  phase           Phase
+  
+  // Behavioral Nutrition Design
+  easyWins        Json     // simple nutrition improvements
+  habitStacks     Json     // nutrition habit stacking
+  temptationBundling Json? // pairing healthy with enjoyable
+  
+  // Implementation Intentions
+  mealTiming      Json     // specific if-then plans for meals
+  shoppingPlan    Json     // behavioral shopping strategies
+  prepSchedule    Json     // meal prep implementation intentions
+  
+  // Social Proof
+  popularChoices  Json     // "Most users in Phase 1 choose..."
+  communityFavorites Json? // community-tested recipes
+  
+  // Personalized Content
+  personalizedMeals    Json // AI-customized meal suggestions
+  preferenceAdaptations Json // adaptations for user preferences
+  
+  // GMRP Integration
+  fiberStrategy   Json     // behavioral approach to fiber goals
+  antiInflammatory Json    // anti-inflammatory food integration
+  gutHealthFocus  Json     // gut health behavioral strategies
+  
+  // Behavioral Tracking
+  easeOfImplementation Float? // 1.0-10.0, predicted ease
+  enjoymentPrediction  Float? // 1.0-10.0, predicted enjoyment
+  adherenceLikelihood  Float? // 0.0-1.0, AI-predicted adherence
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@map("nutrition_plans")
+}
+
+model ExercisePlan {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime
+  
+  // Behavioral Exercise Design
+  minimumVersion  Json     // 2-minute rule version
+  tinyHabits      Json     // micro-exercise habits
+  habitStacks     Json     // exercise habit stacking
+  
+  // Implementation Strategy
+  specificTiming  Json     // precise when/where plans
+  equipmentSetup  Json     // environmental design
+  clothingPlan    Json     // reducing friction
+  
+  // Behavioral Adaptations
+  personalizedWorkout Json // AI-customized for behavior profile
+  motivationBoosts    Json // behavioral motivation strategies
+  obstaclePreplanning Json // if-then plans for obstacles
+  
+  // Social Elements
+  accountabilityPartner String? // assigned workout buddy
+  socialSharing        Boolean @default(false)
+  publicCommitment     String? // public exercise commitment
+  
+  // Progress Psychology
+  progressMilestones   Json    // behavioral milestone design
+  celebrationPlans     Json    // how to celebrate progress
+  setbackRecovery      Json    // bounce-back strategies
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@map("exercise_plans")
+}
+
+model MeditationPlan {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime
+  
+  // Behavioral Meditation Design
+  anchorHabit     String   // existing habit to stack with
+  minimumPractice Json     // 2-minute rule meditation
+  contextualCues  Json     // environmental meditation cues
+  
+  // Personalization
+  personalizedTechnique Json // AI-selected technique
+  difficultyProgression Json // gradual difficulty increase
+  
+  // Implementation Strategy
+  specificLocation String  // designated meditation spot
+  timingStrategy   Json    // optimal timing for user
+  obstacleHandling Json    // plans for common obstacles
+  
+  // Behavioral Support
+  reminderStrategy Json    // personalized reminder approach
+  motivationAnchors Json   // connection to deeper values
+  progressTracking  Json   // meaningful progress metrics
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@map("meditation_plans")
+}
+
+// Existing models (simplified versions)
+model HealthProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  age             Int?
+  gender          String?
+  weight          Float?
+  height          Float?
+  healthConditions String[]
+  medications     String[]
+  allergies       String[]
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("health_profiles")
+}
+
+model ProgressEntry {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime @default(now())
+  
+  // Standard metrics
+  weight          Float?
+  sleepHours      Float?
+  stressLevel     Int?
+  energyLevel     Int?
+  
+  // Behavioral metrics
+  habitCompletion Float?   // % of habits completed
+  willpowerLevel  Int?     // remaining willpower 1-10
+  motivationLevel Int?     // current motivation 1-10
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("progress_entries")
+}
+
+model ProfessionalOverride {
+  id              String   @id @default(cuid())
+  professionalId  String
+  clientId        String
+  
+  overrideType    OverrideType
+  originalValue   Json
+  newValue        Json
+  reason          String
+  urgency         OverrideUrgency @default(ROUTINE)
+  
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  
+  professional    User     @relation("OverrideGiver", fields: [professionalId], references: [id])
+  client          User     @relation("OverrideReceiver", fields: [clientId], references: [id])
+  
+  @@map("professional_overrides")
+}
+
+// Enums
+enum UserType {
+  MEMBER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum Phase {
+  PHASE1
+  PHASE2
+  PHASE3
+}
+
+enum MotivationType {
+  INTRINSIC
+  EXTRINSIC
+  BALANCED
+}
+
+enum TimeOfDay {
+  EARLY_MORNING   // 5-7 AM
+  MORNING         // 7-10 AM
+  LATE_MORNING    // 10-12 PM
+  EARLY_AFTERNOON // 12-3 PM
+  LATE_AFTERNOON  // 3-6 PM
+  EARLY_EVENING   // 6-8 PM
+  EVENING         // 8-10 PM
+  NIGHT           // 10 PM+
+}
+
+enum ReminderFrequency {
+  MINIMAL
+  LOW
+  MODERATE
+  HIGH
+  INTENSIVE
+}
+
+enum NudgeStyle {
+  GENTLE
+  ENCOURAGING
+  MOTIVATIONAL
+  URGENT
+  PLAYFUL
+}
+
+enum RewardResponse {
+  IMMEDIATE_FOCUSED
+  DELAYED_FOCUSED
+  BALANCED
+  INTRINSIC_ONLY
+}
+
+enum HabitCategory {
+  NUTRITION
+  EXERCISE
+  MEDITATION
+  SLEEP
+  SUPPLEMENTS
+  HYDRATION
+  SOCIAL
+  LEARNING
+  CBT
+  CUSTOM
+}
+
+enum CueType {
+  TIME_BASED
+  LOCATION_BASED
+  PERSON_BASED
+  EMOTION_BASED
+  ACTIVITY_BASED
+  ENVIRONMENTAL
+}
+
+enum DifficultyLevel {
+  TINY           // 2-minute rule
+  EASY           // 5-10 minutes
+  MODERATE       // 10-30 minutes
+  CHALLENGING    // 30-60 minutes
+  INTENSIVE      // 60+ minutes
+}
+
+enum Frequency {
+  DAILY
+  WEEKDAYS
+  WEEKENDS
+  WEEKLY
+  CUSTOM
+}
+
+enum QualityRating {
+  POOR
+  FAIR
+  GOOD
+  EXCELLENT
+}
+
+enum EffortLevel {
+  EFFORTLESS
+  MINIMAL
+  MODERATE
+  HIGH
+  MAXIMUM
+}
+
+enum EnjoymentLevel {
+  UNENJOYABLE
+  NEUTRAL
+  SOMEWHAT_ENJOYABLE
+  ENJOYABLE
+  VERY_ENJOYABLE
+}
+
+enum EmotionalState {
+  STRESSED
+  ANXIOUS
+  NEUTRAL
+  MOTIVATED
+  ENERGIZED
+  CALM
+  HAPPY
+}
+
+enum StreakType {
+  SINGLE_HABIT
+  HABIT_STACK
+  CATEGORY_BASED
+  CUSTOM_COMPOSITE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NudgeType {
+  REMINDER
+  ENCOURAGEMENT
+  SOCIAL_PROOF
+  LOSS_AVERSION
+  IMPLEMENTATION_INTENTION
+  TEMPTATION_BUNDLING
+  FRESH_START
+}
+
+enum TriggerType {
+  TIME_TRIGGER
+  LOCATION_TRIGGER
+  BEHAVIOR_TRIGGER
+  EMOTION_TRIGGER
+  SOCIAL_TRIGGER
+  ENVIRONMENTAL_TRIGGER
+}
+
+enum NudgeResponse {
+  IGNORED
+  DISMISSED
+  VIEWED
+  ACTED_UPON
+  COMPLETED
+}
+
+enum RewardType {
+  POINTS
+  BADGE
+  UNLOCK
+  SOCIAL_RECOGNITION
+  MONETARY
+  EXPERIENCE
+  PRIVILEGE
+}
+
+enum ImmediateLevel {
+  INSTANT
+  WITHIN_HOUR
+  SAME_DAY
+  NEXT_DAY
+  DELAYED
+}
+
+enum CertaintyLevel {
+  GUARANTEED
+  VERY_LIKELY
+  LIKELY
+  VARIABLE
+  SURPRISE
+}
+
+enum OverrideType {
+  FASTING_SCHEDULE
+  SUPPLEMENT_DOSE
+  EXERCISE_INTENSITY
+  NUTRITION_RESTRICTION
+  PHASE_TRANSITION
+  HABIT_MODIFICATION
+  BEHAVIORAL_INTERVENTION
+  EMERGENCY_STOP
+}
+
+enum OverrideUrgency {
+  ROUTINE
+  IMPORTANT
+  URGENT
+}

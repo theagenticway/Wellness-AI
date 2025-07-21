@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User } from '../types/user';
 import { Settings } from 'lucide-react';
+import { Card } from '../components/ui/card';
 import { WellnessTip } from '../components/WellnessTip';
 import { DailyPlanModule } from '../components/DailyPlanModule';
 import { NutritionPlanModule } from '../components/NutritionPlanModule';
@@ -23,6 +24,11 @@ interface PlanData {
   title: string;
   description: string;
   duration?: string; // For Exercise and Mindfulness
+  communityStats?: {
+    totalMembers: number;
+    activeToday: number;
+    challenges: number;
+  };
 }
 
 export function DashboardScreen({ user }: DashboardScreenProps) {
@@ -32,6 +38,7 @@ export function DashboardScreen({ user }: DashboardScreenProps) {
   const [exercisePlan, setExercisePlan] = useState<PlanData | null>(null);
   const [cbtPlan, setCbtPlan] = useState<PlanData | null>(null);
   const [mindfulnessPlan, setMindfulnessPlan] = useState<PlanData | null>(null);
+  const [wellnessPlan, setWellnessPlan] = useState<PlanData | null>(null);
 
   useEffect(() => {
     const fetchWellnessData = async () => {
@@ -41,7 +48,10 @@ export function DashboardScreen({ user }: DashboardScreenProps) {
         setWellnessTips(tips);
 
         // Fetch daily plan
-        const daily = await wellnessAPI.getDailyPlan(user, {});
+        const daily = await wellnessAPI.getDailyPlan({
+          ...user,
+          userId: user.id // Make sure userId is explicitly passed
+        }, {});
         setDailyPlan(daily);
 
         // Fetch nutrition plan
@@ -59,6 +69,10 @@ export function DashboardScreen({ user }: DashboardScreenProps) {
         // Fetch mindfulness plan
         const mindfulness = await wellnessAPI.getMindfulnessPlan(user);
         setMindfulnessPlan(mindfulness);
+
+        // Fetch wellness plan with community stats
+        const wellness = await wellnessAPI.getWellnessPlan(user);
+        setWellnessPlan(wellness);
 
       } catch (error) {
         console.error('Error fetching wellness data:', error);
@@ -108,6 +122,37 @@ export function DashboardScreen({ user }: DashboardScreenProps) {
           <h2 className="text-lg font-semibold my-4">Your Mindfulness Plan</h2>
           <MindfulnessModule plan={mindfulnessPlan} />
         </>
+      )}
+
+      {wellnessPlan?.communityStats && (
+        <div className="my-4">
+          <h2 className="text-lg font-semibold mb-2">Community Stats</h2>
+          {/* Social Proof */}
+          <Card className="border-green-200 bg-green-50">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-600">Community Members</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    {wellnessPlan.communityStats.totalMembers}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-green-600">Active Today</p>
+                  <p className="text-xl font-semibold text-green-700">
+                    {wellnessPlan.communityStats.activeToday}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-green-600">Challenges</p>
+                  <p className="text-xl font-semibold text-green-700">
+                    {wellnessPlan.communityStats.challenges}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
 
       <h2 className="text-lg font-semibold my-4">Today's Wellness Tips</h2>

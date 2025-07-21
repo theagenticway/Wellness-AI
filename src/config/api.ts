@@ -4,12 +4,12 @@ export const API_CONFIG = {
   ENDPOINTS: {
     WELLNESS: {
       TIPS: '/wellness',
-      DAILY_PLAN: '/api/wellness/daily-plan',
+      DAILY_PLAN: '/api/behavioral/daily-plan',  // ← Changed this
       NUTRITION_PLAN: '/api/wellness/nutrition-plan',
       EXERCISE_PLAN: '/api/wellness/exercise-plan',
       CBT_PLAN: '/api/wellness/cbt-plan',
       MINDFULNESS_PLAN: '/api/wellness/mindfulness-plan',
-      PROGRESS: '/api/wellness/assess-progress',
+      PROGRESS: '/api/analytics/progress',  // ← Changed this
       PHASE_TRANSITION: '/api/wellness/phase-transition'
     },
     HEALTH: '/health',
@@ -50,6 +50,7 @@ export const wellnessAPI = {
     return apiCall(API_CONFIG.ENDPOINTS.WELLNESS.DAILY_PLAN, {
       method: 'POST',
       body: JSON.stringify({
+        userId: userProfile.id, 
         userProfile,
         healthMetrics
       })
