@@ -11,7 +11,9 @@ interface CardProps {
   className?: string;
 }
 
-const StyledCard = styled.div<CardProps>`
+const StyledCard = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['padding', 'hover'].includes(prop),
+})<CardProps>`
   background: ${theme.colors.background};
   border: 1px solid ${theme.colors.border};
   border-radius: ${theme.borderRadius.lg};

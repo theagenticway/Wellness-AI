@@ -15,8 +15,9 @@ const prisma = new PrismaClient();
 
 // Middleware
 app.use(cors({
-origin: [
+  origin: [
     'http://localhost:3000',
+    'http://127.0.0.1:3000',  // Add 127.0.0.1 variant
     'http://localhost:5173',  // Add Vite's default port
     process.env.FRONTEND_URL
   ].filter(Boolean),

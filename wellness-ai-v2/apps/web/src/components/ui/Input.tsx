@@ -12,7 +12,9 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   fullWidth?: boolean;
 }
 
-const InputWrapper = styled.div<{ fullWidth?: boolean }>`
+const InputWrapper = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'fullWidth',
+})<{ fullWidth?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing.xs};
@@ -31,7 +33,9 @@ const InputContainer = styled.div`
   align-items: center;
 `;
 
-const StyledInput = styled.input<{ hasLeftIcon?: boolean; hasRightIcon?: boolean; error?: boolean }>`
+const StyledInput = styled.input.withConfig({
+  shouldForwardProp: (prop) => !['hasLeftIcon', 'hasRightIcon', 'error'].includes(prop),
+})<{ hasLeftIcon?: boolean; hasRightIcon?: boolean; error?: boolean }>`
   width: 100%;
   padding: ${theme.spacing.md};
   padding-left: ${({ hasLeftIcon }) => hasLeftIcon ? '40px' : theme.spacing.md};

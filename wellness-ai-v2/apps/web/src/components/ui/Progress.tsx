@@ -32,7 +32,9 @@ const ProgressWrapper = styled.div`
   width: 100%;
 `;
 
-const ProgressTrack = styled.div<{ size: ProgressProps['size'] }>`
+const ProgressTrack = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'size',
+})<{ size: ProgressProps['size'] }>`
   width: 100%;
   height: ${({ size = 'md' }) => progressSizes[size]};
   background: ${theme.colors.surface};
@@ -41,7 +43,9 @@ const ProgressTrack = styled.div<{ size: ProgressProps['size'] }>`
   position: relative;
 `;
 
-const ProgressBar = styled.div<{ 
+const ProgressBar = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['value', 'color'].includes(prop),
+})<{ 
   value: number; 
   color: ProgressProps['color'];
 }>`

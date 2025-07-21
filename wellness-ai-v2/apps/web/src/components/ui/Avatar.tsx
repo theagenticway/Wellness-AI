@@ -18,7 +18,9 @@ const avatarSizes = {
   xl: '80px',
 };
 
-const StyledAvatar = styled.div<{ size: AvatarProps['size'] }>`
+const StyledAvatar = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'size',
+})<{ size: AvatarProps['size'] }>`
   width: ${({ size = 'md' }) => avatarSizes[size]};
   height: ${({ size = 'md' }) => avatarSizes[size]};
   border-radius: ${theme.borderRadius.full};
@@ -37,7 +39,9 @@ const AvatarImage = styled.img`
   object-fit: cover;
 `;
 
-const AvatarInitials = styled.span<{ size: AvatarProps['size'] }>`
+const AvatarInitials = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'size',
+})<{ size: AvatarProps['size'] }>`
   font-size: ${({ size = 'md' }) => {
     const fontSizeMap = {
       sm: theme.fontSize.xs,
@@ -52,7 +56,9 @@ const AvatarInitials = styled.span<{ size: AvatarProps['size'] }>`
   text-transform: uppercase;
 `;
 
-const AvatarFallback = styled.div<{ size: AvatarProps['size'] }>`
+const AvatarFallback = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'size',
+})<{ size: AvatarProps['size'] }>`
   width: ${({ size = 'md' }) => avatarSizes[size]};
   height: ${({ size = 'md' }) => avatarSizes[size]};
   border-radius: ${theme.borderRadius.full};
