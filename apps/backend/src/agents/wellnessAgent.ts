@@ -2,25 +2,7 @@
 import { enhancedLLMGateway } from '../services/enhancedLLMGateway';
 import { behavioralAI } from '../services/behavioralAI';
 import { nutritionAgent } from './nutritionAgent';
-
-export interface UserProfile {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  age: number;
-  gender: string;
-  healthGoals: string[];
-  currentPhase: 'phase1' | 'phase2' | 'phase3';
-  startDate?: Date;
-  healthConditions?: string[];
-  medications?: string[];
-  preferences: {
-    dietary: string[];
-    exercise: string[];
-    communication: string;
-  };
-}
+import { UserProfile } from '@app_types/user';
 
 export interface HealthMetrics {
   weight?: number;
@@ -59,7 +41,7 @@ export interface WellnessPlan {
   };
   safetyAlerts?: string[];
   behavioralNudges?: Array<{
-    type: 'habit_stack' | 'implementation_intention' | 'social_proof' | 'loss_aversion';
+    type: 'habit_stack' | 'implementation_intention' | 'social_proof' | 'loss_aversion' | 'info' | 'warning' | 'success' | 'tip';
     message: string;
     trigger?: string;
   }>;

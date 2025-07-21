@@ -1,57 +1,47 @@
 // types/user.ts
-export interface User {
+export interface UserProfile {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  type: 'member' | 'professional';
-  
-  // Profile Information
-  age?: number;
-  gender?: 'male' | 'female' | 'non-binary' | 'not-specified';
-  dateOfBirth?: string;
-  
-  // GMRP Program Details
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  age: number;
+  gender: string;
+  healthGoals: string[];
   currentPhase: 'phase1' | 'phase2' | 'phase3';
   startDate?: string;
-  programGoals: string[];
-  healthGoals?: string[];
-  
-  // Health Information
   healthConditions?: string[];
   medications?: string[];
+  preferences: {
+    dietary: string[];
+    exercise: string[];
+    communication: string;
+  };
+}
+
+export interface User extends UserProfile {
+  type: 'member' | 'professional';
+  dateOfBirth?: string;
+  programGoals: string[];
   allergies?: string[];
-  
-  // Preferences
-  dietaryPreferences?: string[];
-  exercisePreferences?: string[];
   communicationPreferences?: {
     frequency: 'daily' | 'weekly' | 'bi-weekly';
     style: 'detailed' | 'concise' | 'motivational';
     preferredTime: 'morning' | 'afternoon' | 'evening';
   };
-  
-  // Progress Tracking
   metrics?: {
     weight?: number;
     height?: number;
     bmi?: number;
     bodyFat?: number;
   };
-  
-  // App Settings
-  preferences: {
+  appSettings: {
     notifications: boolean;
     darkMode: boolean;
     language: string;
   };
-  
-  // Professional-specific fields
   credentials?: string[];
   specializations?: string[];
   clientIds?: string[];
-  
-  // Timestamps
   createdAt?: string;
   updatedAt?: string;
   lastLoginAt?: string;

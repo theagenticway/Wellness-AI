@@ -97,7 +97,7 @@ class BehavioralAI {
   /**
    * Generate behavioral economics-driven nutrition plan
    */
-  private async generateBehavioralNutrition(context: BehavioralContext): Promise<any> {
+  async generateBehavioralNutrition(context: BehavioralContext): Promise<any> {
     const prompt = `
 You are a behavioral economics expert creating a personalized nutrition plan.
 

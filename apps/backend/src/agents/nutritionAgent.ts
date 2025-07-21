@@ -1,6 +1,6 @@
 // apps/backend/src/agents/nutritionAgent.ts
 import { enhancedLLMGateway } from '../services/enhancedLLMGateway';
-import { UserProfile } from './wellnessAgent';
+import { UserProfile } from '@app_types/user';
 
 export interface NutritionPlanResponse {
   mealPlan: {
