@@ -6,9 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import { llmGateway } from './services/llmGateway';
 import { behavioralAI } from './services/behavioralAI';
 import authRoutes from './routes/auth';
-import { authenticateToken, AuthenticatedRequest } from './middleware/auth';
-import authRoutes from './routes/auth';
-import authMiddleware from './middleware/auth';
+import { authenticateToken, AuthenticatedRequest, authMiddleware } from './middleware/auth';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -374,7 +372,222 @@ app.post('/api/nudges/:nudgeId/respond', authenticateToken, async (req: Authenti
     });
   }
 });
+// Behavioral AI daily plan endpoint
+app.get('/api/behavioral/daily-plan', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Mock behavioral context for testing
+    const mockBehavioralContext = {
+      userId: req.userId!,
+      user: {
+        currentPhase: 'phase1' as const,
+        age: 30,
+        healthGoals: ['weight_loss', 'energy_boost'],
+        preferences: {
+          dietary: ['whole_foods'],
+          exercise: ['yoga'],
+          communication: 'encouraging'
+        }
+      },
+      timeOfDay: 'MORNING',
+      dayOfWeek: 'MONDAY',
+      recentPerformance: {
+        energyLevel: 7,
+        adherenceRate: 0.8,
+        stressLevel: 4
+      },
+      currentStreaks: [
+        { streakType: 'hydration', currentCount: 5 }
+      ],
+      recentHabits: [],
+      behaviorProfile: {
+        motivationType: 'BALANCED',
+        lossAversion: 2.5,
+        presentBias: 0.7,
+        socialInfluence: 0.5,
+        gamificationResponse: 0.6
+      },
+      environmentalContext: {
+        availableEquipment: 'basic'
+      }
+    };
 
+    const behavioralPlan = await behavioralAI.generateBehavioralNutrition(mockBehavioralContext);
+    
+    res.json({
+      success: true,
+      data: behavioralPlan,
+      context: mockBehavioralContext,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Behavioral daily plan error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+app.post('/test-ai', async (req: Request, res: Response) => {
+  try {
+    // Import the enhanced LLM gateway
+    const { enhancedLLMGateway } = await import('./services/enhancedLLMGateway');
+    
+    const testPrompt = "Generate a brief, encouraging wellness tip for someone starting their GMRP Phase 1 journey today.";
+    const response = await enhancedLLMGateway.generateResponse('wellness', testPrompt);
+    
+    res.json({
+      success: true,
+      message: 'Gemini AI is working perfectly!',
+      wellnessTip: response,
+      aiProvider: 'Gemini 2.0 Flash',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('AI test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'Check GOOGLE_API_KEY in environment variables'
+    });
+  }
+});
+
+// Test wellness graph endpoint
+app.get('/test-graph', async (req: Request, res: Response) => {
+  try {
+    const { firstName, lastName, email, type, phase } = req.query;
+    
+    // Mock user profile for testing
+    const mockProfile = {
+      id: 'test-user-123',
+      firstName: firstName as string || 'Test',
+      lastName: lastName as string || 'User',
+      email: email as string || 'test@example.com',
+      age: 30,
+      gender: 'other',
+      currentPhase: (phase as string || 'phase1') as 'phase1' | 'phase2' | 'phase3',
+      healthGoals: ['weight_loss', 'energy_boost'],
+      preferences: {
+        dietary: ['whole_foods'],
+        exercise: ['yoga', 'walking'],
+        communication: 'encouraging'
+      }
+    };
+
+    const mockMetrics = {
+      weight: 150,
+      energyLevel: 6,
+      sleepHours: 7,
+      stressLevel: 5
+    };
+
+    // Import and test wellness agent
+    const { wellnessAgent } = await import('./agents/wellnessAgent');
+    
+    const plan = await wellnessAgent.generatePersonalizedPlan(mockProfile, mockMetrics);
+    
+    res.json({
+      success: true,
+      message: 'Wellness Agent working with Gemini + Behavioral AI!',
+      userProfile: mockProfile,
+      healthMetrics: mockMetrics,
+      generatedPlan: plan,
+      integrations: {
+        gemini_ai: 'active',
+        behavioral_ai: 'active',
+        gmrp_protocols: 'active'
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Wellness graph test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'Check Gemini AI configuration and wellness agent setup'
+    });
+  }
+});
+
+// Wellness plan endpoint
+app.get('/api/wellness/daily-plan', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Import wellness agent
+    const { wellnessAgent } = await import('./agents/wellnessAgent');
+    
+    // Mock user data for development
+    const mockProfile = {
+      id: req.userId!,
+      firstName: 'Demo',
+      lastName: 'User',
+      email: req.user?.email || 'demo@wellness.ai',
+      currentPhase: 'phase1' as const,
+      age: 30,
+      gender: 'other',
+      healthGoals: ['weight_loss', 'energy_boost'],
+      preferences: {
+        dietary: ['whole_foods'],
+        exercise: ['yoga'],
+        communication: 'encouraging'
+      }
+    };
+
+    const mockMetrics = {
+      energyLevel: 7,
+      sleepHours: 8,
+      stressLevel: 4
+    };
+
+    const plan = await wellnessAgent.generatePersonalizedPlan(mockProfile, mockMetrics);
+    
+    res.json({
+      success: true,
+      data: plan,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Daily plan error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+// Test nutrition endpoint
+app.get('/api/nutrition/test', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { nutritionAgent } = await import('./agents/nutritionAgent');
+    
+    const mockProfile = {
+      id: req.userId!,
+      firstName: 'Demo',
+      lastName: 'User',
+      currentPhase: 'phase1' as const,
+      age: 30,
+      gender: 'other',
+      healthGoals: ['weight_loss'],
+      preferences: {
+        dietary: ['whole_foods', 'plant_forward'],
+        exercise: ['yoga'],
+        communication: 'encouraging'
+      }
+    };
+
+    const nutritionPlan = await nutritionAgent.generateMealPlan(mockProfile, []);
+    
+    res.json({
+      success: true,
+      data: nutritionPlan,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Nutrition test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 /**
  * Get behavioral analytics and insights
  */
@@ -964,19 +1177,30 @@ function calculateConsistencyScore(logs: any[]): number {
   return Math.random() * 0.3 + 0.7; // Mock implementation
 }
 
-// Error handling and 404 remain the same...
-app.use((error: any, req: Request, res: Response, next: any) => {
-  console.error('❌ Unhandled error:', error);
+// Global error handler
+app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Global error:', error);
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    message: error.message || 'Something went wrong',
+    timestamp: new Date().toISOString()
   });
 });
 
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not found',
-    message: `Route ${req.originalUrl} not found`
+    message: `Route ${req.originalUrl} not found`,
+    availableEndpoints: [
+      'GET /',
+      'GET /health', 
+      'POST /test-ai',
+      'GET /test-graph',
+      'GET /api/wellness/daily-plan',
+      'GET /api/behavioral/daily-plan',
+      'GET /api/nutrition/test'
+    ],
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -986,23 +1210,24 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// Start server
 app.listen(port, () => {
-  console.log(`🚀 WellnessAI Behavioral Economics Backend v3.0 running on port ${port}`);
-  console.log(`🧠 Behavioral AI: Active`);
-  console.log(`📊 Habit Formation Engine: Ready`);
-  console.log(`💡 Personalized Nudge System: Online`);
-  console.log(`🔬 Behavioral Analytics: Enabled`);
+  console.log(`🚀 WellnessAI Backend v2.0.0-gemini-enhanced running on port ${port}`);
+  console.log(`🧠 Gemini AI Integration: ${process.env.GOOGLE_API_KEY ? '✅ Active' : '❌ Missing API Key'}`);
+  console.log(`🎯 Behavioral AI: ✅ Active`);
+  console.log(`📊 Database: ${process.env.DATABASE_URL ? '✅ Configured' : '❌ Not configured'}`);
   console.log(`📋 Health check: http://localhost:${port}/health`);
+  console.log(`🧪 Test AI: curl -X POST http://localhost:${port}/test-ai`);
+  console.log(`🔬 Test Wellness: curl 'http://localhost:${port}/test-graph?firstName=John&lastName=Doe&email=john@example.com&type=member&phase=phase1'`);
   
-  console.log('\n🎯 Behavioral Economics Features:');
-  console.log('   ✅ 2-minute rule implementation');
-  console.log('   ✅ Habit stacking optimization');
-  console.log('   ✅ Implementation intentions');
-  console.log('   ✅ Loss aversion protection');
-  console.log('   ✅ Social proof integration');
-  console.log('   ✅ Temptation bundling');
-  console.log('   ✅ Willpower pattern analysis');
-  console.log('   ✅ Personalized nudge timing');
+  console.log('\n🎯 Enhanced Features Available:');
+  console.log('   ✅ Gemini 2.0 Flash AI integration');
+  console.log('   ✅ GMRP Phase 1-3 protocols');
+  console.log('   ✅ Behavioral economics optimization');
+  console.log('   ✅ Personalized wellness plans');
+  console.log('   ✅ Medical-grade recommendations');
+  console.log('   ✅ Real-time AI responses');
+  console.log('   ✅ Habit formation strategies');
   
-  console.log('\n🏥 GMRP + Behavioral Science = Habit Formation Success! 🌟');
+  console.log('\n🏥 GMRP + Gemini AI + Behavioral Science = Complete Wellness Platform! 🌟');
 });

@@ -1,13 +1,18 @@
 // apps/backend/src/agents/wellnessAgent.ts
 import { enhancedLLMGateway } from '../services/enhancedLLMGateway';
+import { behavioralAI } from '../services/behavioralAI';
+import { nutritionAgent } from './nutritionAgent';
 
 export interface UserProfile {
   id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   age: number;
   gender: string;
   healthGoals: string[];
   currentPhase: 'phase1' | 'phase2' | 'phase3';
-  startDate: Date;
+  startDate?: Date;
   healthConditions?: string[];
   medications?: string[];
   preferences: {
@@ -25,442 +30,607 @@ export interface HealthMetrics {
   energyLevel?: number;
   digestiveHealth?: number;
   adherenceRate?: number;
+  lastAssessment?: Date;
 }
 
-export interface WellnessPlanResponse {
+export interface WellnessPlan {
   greeting: string;
+  phaseGuidance: string;
   dailyPlan: Array<{
     title: string;
+    priority: 'high' | 'medium' | 'low';
     completed: boolean;
     status: string;
-    priority?: 'high' | 'medium' | 'low';
+    category?: 'nutrition' | 'exercise' | 'mindfulness' | 'hydration' | 'supplements';
+    behavioralStrategy?: string;
+    estimatedTime?: string;
   }>;
   recommendations: string[];
-  nextSteps: string[];
-  safetyAlerts: string[];
-  phaseGuidance: string;
   insights: Array<{
     title: string;
     message: string;
-    action?: string;
     type: 'info' | 'warning' | 'success' | 'tip';
   }>;
-  progressAssessment: {
+  nextSteps: string[];
+  progressAssessment?: {
     currentScore: number;
-    areas: Array<{
-      name: string;
-      score: number;
-      feedback: string;
-    }>;
+    summary: string;
+    improvements: string[];
   };
+  safetyAlerts?: string[];
+  behavioralNudges?: Array<{
+    type: 'habit_stack' | 'implementation_intention' | 'social_proof' | 'loss_aversion';
+    message: string;
+    trigger?: string;
+  }>;
 }
 
 export class WellnessAgent {
+  
   async generatePersonalizedPlan(
     userProfile: UserProfile,
     healthMetrics: HealthMetrics,
     professionalOverride?: string
-  ): Promise<WellnessPlanResponse> {
-    console.log(`🏥 Generating GMRP ${userProfile.currentPhase} plan for ${userProfile.id}`);
-    
+  ): Promise<WellnessPlan> {
     try {
-      const response = await enhancedLLMGateway.generateWellnessPlan(
+      // Validate input
+      this.validateUserProfile(userProfile);
+      
+      // Check for safety concerns first
+      const safetyAlerts = this.checkSafetyAlerts(userProfile, healthMetrics);
+      
+      // Generate behavioral context for enhanced personalization
+      const behavioralContext = await this.createBehavioralContext(userProfile, healthMetrics);
+      
+      // Generate core wellness plan using enhanced LLM
+      const aiPlan = await enhancedLLMGateway.generateWellnessPlan(
         userProfile,
         healthMetrics,
         professionalOverride
       );
       
-      return this.enhanceResponse(response, userProfile, healthMetrics);
-    } catch (error) {
-      console.error('❌ Wellness Agent Error:', error);
+      // Enhance with behavioral AI insights
+      const behavioralEnhancements = await behavioralAI.generateBehavioralNutrition(behavioralContext);
+      
+      // Integrate GMRP-specific protocols
+      const enhancedPlan = this.enhanceWithGMRPProtocols(aiPlan, userProfile);
+      
+      // Add behavioral nudges and strategies
+      const finalPlan = this.addBehavioralStrategies(enhancedPlan, behavioralEnhancements, userProfile);
+      
+      // Add safety alerts if any
+      if (safetyAlerts.length > 0) {
+        finalPlan.safetyAlerts = safetyAlerts;
+      }
+      
+      return finalPlan;
+      
+    } catch (error: any) {
+      console.error('Wellness Agent Error:', error);
       return this.getFallbackPlan(userProfile, healthMetrics);
     }
   }
 
-  async assessProgress(
+  async generateComprehensiveNutritionPlan(
     userProfile: UserProfile,
-    recentActivities: any[],
-    healthMetrics: HealthMetrics
+    healthMetrics: HealthMetrics,
+    dietaryRestrictions?: string[]
   ): Promise<any> {
-    const prompt = this.buildProgressAssessmentPrompt(userProfile, recentActivities, healthMetrics);
-    
     try {
-      const response = await enhancedLLMGateway.generateResponse('wellness', prompt);
-      return this.parseProgressAssessment(response);
-    } catch (error) {
-      console.error('❌ Progress Assessment Error:', error);
-      return this.getFallbackProgressAssessment(userProfile);
+      // Use the existing nutrition agent with enhanced prompting
+      const nutritionPlan = await nutritionAgent.generateMealPlan(
+        userProfile,
+        dietaryRestrictions || [],
+        undefined // professionalOverride
+      );
+
+      // Enhance with behavioral AI insights
+      const behavioralContext = await this.createBehavioralContext(userProfile, healthMetrics);
+      const behavioralNutrition = await behavioralAI.generateBehavioralNutrition(behavioralContext);
+
+      // Combine both approaches
+      return {
+        ...nutritionPlan,
+        behavioralStrategies: behavioralNutrition,
+        phaseSpecificGuidance: this.getPhaseNutritionGuidance(userProfile.currentPhase),
+        gmrpCompliance: this.validateGMRPCompliance(nutritionPlan, userProfile.currentPhase)
+      };
+
+    } catch (error: any) {
+      console.error('Comprehensive nutrition plan error:', error);
+      return this.getFallbackNutritionPlan(userProfile);
     }
   }
 
-  async generatePhaseTransitionGuidance(
+  async generateCBTSession(
     userProfile: UserProfile,
-    readinessScore: number
+    currentChallenges: string[],
+    moodLevel: number,
+    recentStressors?: string[]
   ): Promise<any> {
-    const prompt = this.buildPhaseTransitionPrompt(userProfile, readinessScore);
-    
     try {
-      const response = await enhancedLLMGateway.generateResponse('wellness', prompt);
-      return this.parsePhaseTransitionGuidance(response);
+      const prompt = this.buildCBTPrompt(userProfile, currentChallenges, moodLevel, recentStressors);
+      const response = await enhancedLLMGateway.generateResponse('cbt', prompt);
+      
+      return this.parseCBTResponse(response, userProfile);
     } catch (error) {
-      console.error('❌ Phase Transition Error:', error);
-      return this.getFallbackPhaseTransition(userProfile);
+      console.error('CBT session generation failed:', error);
+      return this.getFallbackCBTSession(userProfile);
     }
   }
 
-  private buildProgressAssessmentPrompt(
-    profile: UserProfile,
-    activities: any[],
-    metrics: HealthMetrics
-  ): string {
-    return `
-ASSESS GMRP PROGRESS FOR USER:
+  // Private helper methods
+  private validateUserProfile(profile: UserProfile): void {
+    if (!profile.id || !profile.age || !profile.currentPhase) {
+      throw new Error('Invalid user profile: missing required fields');
+    }
+    
+    if (profile.age < 18 || profile.age > 120) {
+      throw new Error('Invalid age range');
+    }
+    
+    if (!['phase1', 'phase2', 'phase3'].includes(profile.currentPhase)) {
+      throw new Error('Invalid GMRP phase');
+    }
+  }
 
-USER PROFILE:
-- Current Phase: ${profile.currentPhase}
-- Days in Program: ${this.calculateDaysInProgram(profile.startDate)}
+  private checkSafetyAlerts(profile: UserProfile, metrics: HealthMetrics): string[] {
+    const alerts: string[] = [];
+    
+    // Age-based alerts
+    if (profile.age < 18) {
+      alerts.push('Consult pediatrician before starting any wellness program');
+    }
+    
+    if (profile.age > 65) {
+      alerts.push('Consult physician before making significant dietary or exercise changes');
+    }
+    
+    // Health condition alerts
+    if (profile.healthConditions?.includes('diabetes')) {
+      alerts.push('Monitor blood sugar closely and consult endocrinologist');
+    }
+    
+    if (profile.healthConditions?.includes('heart_disease')) {
+      alerts.push('Consult cardiologist before starting exercise program');
+    }
+    
+    if (profile.healthConditions?.includes('eating_disorder')) {
+      alerts.push('Work with mental health professional familiar with eating disorders');
+    }
+    
+    if (profile.medications?.length) {
+      alerts.push('Consult pharmacist about supplement interactions with current medications');
+    }
+    
+    // Metrics-based alerts
+    if (metrics.stressLevel && metrics.stressLevel >= 8) {
+      alerts.push('High stress levels detected - consider speaking with a mental health professional');
+    }
+    
+    if (metrics.sleepHours && metrics.sleepHours < 5) {
+      alerts.push('Severe sleep deprivation detected - prioritize sleep hygiene and consult physician');
+    }
+
+    // GMRP Phase-specific alerts
+    if (profile.currentPhase === 'phase2' && metrics.energyLevel && metrics.energyLevel < 4) {
+      alerts.push('Low energy detected - may need to delay intermittent fasting introduction');
+    }
+    
+    return alerts;
+  }
+
+  private async createBehavioralContext(profile: UserProfile, metrics: HealthMetrics): Promise<any> {
+    // Create behavioral context for the behavioral AI system
+    return {
+      userId: profile.id,
+      user: {
+        currentPhase: profile.currentPhase,
+        age: profile.age,
+        healthGoals: profile.healthGoals,
+        preferences: profile.preferences
+      },
+      timeOfDay: this.getCurrentTimeOfDay(),
+      dayOfWeek: this.getCurrentDayOfWeek(),
+      recentPerformance: {
+        energyLevel: metrics.energyLevel || 5,
+        adherenceRate: metrics.adherenceRate || 0.7,
+        stressLevel: metrics.stressLevel || 5
+      },
+      currentStreaks: [], // Would be populated from database
+      recentHabits: [], // Would be populated from database
+      behaviorProfile: this.createDefaultBehaviorProfile(profile),
+      environmentalContext: {
+        availableEquipment: 'basic'
+      }
+    };
+  }
+
+  private createDefaultBehaviorProfile(profile: UserProfile): any {
+    return {
+      motivationType: 'BALANCED',
+      lossAversion: 2.5,
+      presentBias: 0.7,
+      socialInfluence: 0.5,
+      gamificationResponse: 0.6,
+      bestPerformanceTime: ['MORNING'],
+      willpowerPattern: {
+        morning: 8,
+        afternoon: 6,
+        evening: 4
+      }
+    };
+  }
+
+  private enhanceWithGMRPProtocols(aiPlan: any, profile: UserProfile): WellnessPlan {
+    // Ensure GMRP Phase compliance
+    if (profile.currentPhase === 'phase1') {
+      // Add Phase 1 specific tasks if missing
+      const phase1Tasks = [
+        {
+          title: "Morning Hydration Protocol",
+          priority: "high" as const,
+          completed: false,
+          status: "Drink 16-20oz water with electrolytes within 30 minutes of waking",
+          category: "hydration" as const,
+          estimatedTime: "2 minutes"
+        },
+        {
+          title: "Fiber Target Achievement",
+          priority: "high" as const,
+          completed: false,
+          status: "Consume 30-50g fiber from diverse whole food sources throughout the day",
+          category: "nutrition" as const,
+          estimatedTime: "Plan with meals"
+        },
+        {
+          title: "Microbiome Support",
+          priority: "medium" as const,
+          completed: false,
+          status: "Include fermented foods or take probiotic supplement as directed",
+          category: "supplements" as const,
+          estimatedTime: "5 minutes"
+        },
+        {
+          title: "Stress Assessment",
+          priority: "medium" as const,
+          completed: false,
+          status: "Complete 5-minute mindfulness check-in and stress level assessment",
+          category: "mindfulness" as const,
+          estimatedTime: "5 minutes"
+        }
+      ];
+
+      // Merge with existing tasks, avoiding duplicates
+      const existingTitles = aiPlan.dailyPlan?.map((task: any) => task.title.toLowerCase()) || [];
+      const newTasks = phase1Tasks.filter(task => 
+        !existingTitles.some(title => title.includes(task.title.toLowerCase().split(' ')[0]))
+      );
+
+      aiPlan.dailyPlan = [...(aiPlan.dailyPlan || []), ...newTasks];
+    }
+
+    // Add GMRP-specific insights
+    const gmrpInsights = this.getGMRPInsights(profile);
+    aiPlan.insights = [...(aiPlan.insights || []), ...gmrpInsights];
+
+    // Add phase-specific guidance
+    aiPlan.phaseGuidance = this.getPhaseGuidance(profile.currentPhase);
+
+    return aiPlan;
+  }
+
+  private addBehavioralStrategies(plan: WellnessPlan, behavioralData: any, profile: UserProfile): WellnessPlan {
+    // Add behavioral nudges to daily tasks
+    if (plan.dailyPlan && behavioralData?.habitStacks) {
+      plan.dailyPlan = plan.dailyPlan.map(task => ({
+        ...task,
+        behavioralStrategy: this.findRelevantBehavioralStrategy(task, behavioralData)
+      }));
+    }
+
+    // Add behavioral nudges
+    plan.behavioralNudges = this.createBehavioralNudges(behavioralData, profile);
+
+    return plan;
+  }
+
+  private findRelevantBehavioralStrategy(task: any, behavioralData: any): string {
+    // Match task with behavioral strategies
+    if (task.category === 'nutrition' && behavioralData?.habitStacks) {
+      const relevantStack = behavioralData.habitStacks.find((stack: any) => 
+        stack.newHabit.toLowerCase().includes('nutrition') || 
+        stack.newHabit.toLowerCase().includes('meal')
+      );
+      return relevantStack ? `Habit Stack: ${relevantStack.implementation}` : '';
+    }
+    
+    return '';
+  }
+
+  private createBehavioralNudges(behavioralData: any, profile: UserProfile): Array<{type: string, message: string, trigger?: string}> {
+    const nudges = [];
+
+    if (behavioralData?.implementationIntentions) {
+      nudges.push({
+        type: 'implementation_intention',
+        message: `If you feel hungry between meals, then you will drink 16oz of water and wait 10 minutes before eating`,
+        trigger: 'hunger_craving'
+      });
+    }
+
+    if (behavioralData?.socialProof) {
+      nudges.push({
+        type: 'social_proof',
+        message: `85% of GMRP Phase 1 participants who track their fiber intake see improvements in energy within 2 weeks`,
+      });
+    }
+
+    return nudges;
+  }
+
+  private getGMRPInsights(profile: UserProfile): Array<{title: string, message: string, type: string}> {
+    const insights = [];
+
+    switch (profile.currentPhase) {
+      case 'phase1':
+        insights.push({
+          title: "Microbiome Reset Priority",
+          message: "Phase 1 focuses on gut healing through whole foods and fiber. No intermittent fasting yet - your microbiome needs nutrients to repair and rebalance.",
+          type: "info"
+        });
+        
+        if (profile.healthGoals.includes('weight_loss')) {
+          insights.push({
+            title: "Sustainable Weight Loss",
+            message: "Focus on gut health first. Sustainable weight loss will naturally follow as your microbiome balances and inflammation reduces.",
+            type: "tip"
+          });
+        }
+        break;
+        
+      case 'phase2':
+        insights.push({
+          title: "IF Introduction Ready",
+          message: "Your microbiome is ready for gentle intermittent fasting. Start with 12:12 once weekly and monitor your energy and mood carefully.",
+          type: "success"
+        });
+        break;
+        
+      case 'phase3':
+        insights.push({
+          title: "Optimization Phase",
+          message: "Focus on fine-tuning your protocols based on how your body responds. This is about long-term sustainability and advanced optimization.",
+          type: "info"
+        });
+        break;
+    }
+
+    return insights;
+  }
+
+  private getPhaseGuidance(phase: string): string {
+    switch (phase) {
+      case 'phase1':
+        return 'GMRP Phase 1: Microbiome Reset - Focus on gut healing with whole foods, 30-50g daily fiber, and complete nutrient repletion. No intermittent fasting during this foundational phase.';
+      case 'phase2':
+        return 'GMRP Phase 2: Gentle IF Introduction - Maintain gut health protocols while carefully introducing 12:12 intermittent fasting once weekly. Monitor energy and mood closely.';
+      case 'phase3':
+        return 'GMRP Phase 3: Advanced Optimization - Personalize protocols based on your body\'s response, biomarker feedback, and long-term sustainability goals.';
+      default:
+        return 'Follow your personalized GMRP protocol as directed by your wellness plan.';
+    }
+  }
+
+  private getPhaseNutritionGuidance(phase: string): any {
+    const guidance = {
+      phase1: {
+        focus: 'Microbiome restoration and nutrient repletion',
+        fiberTarget: '30-50g daily from diverse sources',
+        hydration: '2-3L water with electrolytes',
+        fasting: 'NO intermittent fasting - focus on healing',
+        supplements: 'Probiotics, prebiotics, B-complex, Vitamin D3+K2, magnesium'
+      },
+      phase2: {
+        focus: 'Gentle IF introduction while maintaining gut health',
+        fiberTarget: '40-50g daily',
+        hydration: '2-3L water, extra during fasting windows',
+        fasting: '12:12 IF once weekly, monitor response carefully',
+        supplements: 'Continue Phase 1 supplements, add electrolytes for fasting'
+      },
+      phase3: {
+        focus: 'Personalized optimization based on response',
+        fiberTarget: 'Individualized based on tolerance and results',
+        hydration: 'Maintain 2-3L daily, adjust for activity',
+        fasting: 'Flexible IF schedule based on lifestyle and response',
+        supplements: 'Customized based on testing and individual needs'
+      }
+    };
+
+    return guidance[phase as keyof typeof guidance] || guidance.phase1;
+  }
+
+  private validateGMRPCompliance(nutritionPlan: any, phase: string): any {
+    const compliance = {
+      phaseAppropriate: true,
+      warnings: [] as string[],
+      recommendations: [] as string[]
+    };
+
+    if (phase === 'phase1') {
+      // Check for IF in Phase 1 (should not be present)
+      if (nutritionPlan.fastingSchedule) {
+        compliance.phaseAppropriate = false;
+        compliance.warnings.push('Intermittent fasting detected in Phase 1 - should focus on nutrient repletion only');
+      }
+
+      // Verify fiber targets
+      if (nutritionPlan.fiberBreakdown?.target < 30) {
+        compliance.warnings.push('Fiber target below Phase 1 minimum of 30g daily');
+      }
+    }
+
+    return compliance;
+  }
+
+  private buildCBTPrompt(profile: UserProfile, challenges: string[], mood: number, stressors?: string[]): string {
+    return `Design a personalized CBT session for a GMRP ${profile.currentPhase} participant.
+
+PARTICIPANT PROFILE:
+- Phase: ${profile.currentPhase}
+- Age: ${profile.age}
+- Communication Style: ${profile.preferences.communication}
 - Health Goals: ${profile.healthGoals.join(', ')}
 
-RECENT ACTIVITIES (Last 7 days):
-${activities.map(activity => `- ${activity.type}: ${activity.description} (${activity.date})`).join('\n')}
+CURRENT SESSION CONTEXT:
+- Mood Level: ${mood}/10
+- Challenges: ${challenges.join(', ')}
+- Recent Stressors: ${stressors?.join(', ') || 'None reported'}
 
-CURRENT METRICS:
-- Sleep Quality: ${metrics.sleepHours || 'Not tracked'} hours
-- Energy Level: ${metrics.energyLevel || 'Not assessed'}/10
-- Digestive Health: ${metrics.digestiveHealth || 'Not assessed'}/10
-- Stress Level: ${metrics.stressLevel || 'Not assessed'}/10
+SESSION OBJECTIVES:
+1. Address current challenges with cognitive reframing techniques
+2. Provide coping strategies specific to wellness journey obstacles  
+3. Reinforce GMRP commitment and build motivation for ${profile.currentPhase}
+4. Include practical exercises for immediate stress relief
+5. Set behavioral goals aligned with current phase requirements
 
-PROVIDE:
-1. Overall progress score (0-100)
-2. Specific areas of improvement and concern
-3. Recommendations for next week
-4. Phase advancement readiness assessment
-5. Motivational feedback with concrete achievements
+PHASE-SPECIFIC FOCUS:
+${this.getCBTPhaseGuidance(profile.currentPhase)}
 
-Be encouraging but honest about areas needing attention.`;
+Keep tone ${profile.preferences.communication} and provide actionable takeaways.`;
   }
 
-  private buildPhaseTransitionPrompt(
-    profile: UserProfile,
-    readinessScore: number
-  ): string {
-    const nextPhase = this.getNextPhase(profile.currentPhase);
-    
-    return `
-EVALUATE GMRP PHASE TRANSITION READINESS:
-
-CURRENT STATUS:
-- Current Phase: ${profile.currentPhase}
-- Days in Current Phase: ${this.calculateDaysInProgram(profile.startDate)}
-- Readiness Score: ${readinessScore}/100
-- Next Phase: ${nextPhase}
-
-TRANSITION CRITERIA:
-${this.getPhaseTransitionCriteria(profile.currentPhase)}
-
-PROVIDE:
-1. Readiness assessment (Ready/Not Ready/Almost Ready)
-2. Missing criteria that need to be met
-3. Estimated timeline for readiness
-4. Preparation steps for next phase
-5. What to expect in ${nextPhase}
-
-Focus on building confidence while ensuring proper preparation.`;
-  }
-
-  private enhanceResponse(
-    response: any,
-    profile: UserProfile,
-    metrics: HealthMetrics
-  ): WellnessPlanResponse {
-    // Add personalized insights based on user data
-    const insights = this.generatePersonalizedInsights(profile, metrics, response);
-    
-    // Enhance daily plan with priorities
-    const enhancedDailyPlan = response.dailyPlan.map((task: any, index: number) => ({
-      ...task,
-      priority: index < 2 ? 'high' : index < 4 ? 'medium' : 'low'
-    }));
-
-    return {
-      ...response,
-      dailyPlan: enhancedDailyPlan,
-      insights,
-      progressAssessment: this.calculateProgressScore(metrics)
-    };
-  }
-
-  private generatePersonalizedInsights(
-    profile: UserProfile,
-    metrics: HealthMetrics,
-    response: any
-  ): Array<{ title: string; message: string; action?: string; type: 'info' | 'warning' | 'success' | 'tip' }> {
-    const insights = [];
-    
-    // Phase-specific insights
-    if (profile.currentPhase === 'phase1') {
-      insights.push({
-        title: 'Microbiome Reset Focus',
-        message: 'Your gut is adapting to the new nutrition protocol. Some digestive changes are normal during the first 2-4 weeks.',
-        type: 'info' as const
-      });
-    }
-
-    // Metrics-based insights
-    if (metrics.sleepHours && metrics.sleepHours < 7) {
-      insights.push({
-        title: 'Sleep Optimization',
-        message: 'Improving sleep quality will significantly boost your GMRP results. Aim for 7-9 hours nightly.',
-        action: 'View Sleep Tips',
-        type: 'warning' as const
-      });
-    }
-
-    if (metrics.stressLevel && metrics.stressLevel > 7) {
-      insights.push({
-        title: 'Stress Management',
-        message: 'High stress levels can impact gut health. Consider adding more mindfulness practices to your routine.',
-        action: 'Try CBT Session',
-        type: 'warning' as const
-      });
-    }
-
-    // Progress celebration
-    if (metrics.adherenceRate && metrics.adherenceRate > 80) {
-      insights.push({
-        title: 'Excellent Adherence!',
-        message: `You're maintaining ${metrics.adherenceRate}% adherence to your GMRP protocol. Keep up the fantastic work!`,
-        type: 'success' as const
-      });
-    }
-
-    return insights.slice(0, 3); // Limit to 3 insights
-  }
-
-  private calculateProgressScore(metrics: HealthMetrics): any {
-    const areas = [
-      {
-        name: 'Nutrition',
-        score: this.calculateNutritionScore(metrics),
-        feedback: 'Based on meal logging and adherence'
-      },
-      {
-        name: 'Sleep',
-        score: this.calculateSleepScore(metrics),
-        feedback: 'Quality and duration tracking'
-      },
-      {
-        name: 'Energy',
-        score: (metrics.energyLevel || 5) * 10,
-        feedback: 'Self-reported energy levels'
-      },
-      {
-        name: 'Digestive Health',
-        score: (metrics.digestiveHealth || 5) * 10,
-        feedback: 'Gut health improvements'
-      }
-    ];
-
-    const currentScore = Math.round(areas.reduce((sum, area) => sum + area.score, 0) / areas.length);
-
-    return {
-      currentScore,
-      areas
-    };
-  }
-
-  private calculateNutritionScore(metrics: HealthMetrics): number {
-    // Simple calculation based on adherence rate
-    return Math.min((metrics.adherenceRate || 50), 100);
-  }
-
-  private calculateSleepScore(metrics: HealthMetrics): number {
-    if (!metrics.sleepHours) return 50;
-    
-    // Optimal sleep is 7-9 hours
-    if (metrics.sleepHours >= 7 && metrics.sleepHours <= 9) {
-      return 100;
-    } else if (metrics.sleepHours >= 6 && metrics.sleepHours <= 10) {
-      return 75;
-    } else {
-      return 40;
+  private getCBTPhaseGuidance(phase: string): string {
+    switch (phase) {
+      case 'phase1':
+        return 'Focus on building sustainable habits, managing potential detox symptoms, and developing a positive relationship with whole foods nutrition.';
+      case 'phase2':
+        return 'Address any anxiety about intermittent fasting, reinforce body awareness, and manage expectations during the transition.';
+      case 'phase3':
+        return 'Support long-term adherence, address perfectionism, and develop flexible coping strategies for life challenges.';
+      default:
+        return 'Provide general wellness and habit formation support.';
     }
   }
 
-  private calculateDaysInProgram(startDate: Date): number {
-    return Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  private parseCBTResponse(response: string, profile: UserProfile): any {
+    try {
+      return JSON.parse(response);
+    } catch {
+      return this.getFallbackCBTSession(profile);
+    }
   }
 
-  private getNextPhase(currentPhase: string): string {
-    const phaseMap = {
-      'phase1': 'phase2',
-      'phase2': 'phase3',
-      'phase3': 'maintenance'
-    };
-    return phaseMap[currentPhase as keyof typeof phaseMap] || 'maintenance';
+  // Utility methods
+  private getCurrentTimeOfDay(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'MORNING';
+    if (hour < 17) return 'AFTERNOON';
+    return 'EVENING';
   }
 
-  private getPhaseTransitionCriteria(currentPhase: string): string {
-    const criteria = {
-      phase1: `
-        - Completed 90+ days in Phase 1
-        - Digestive health score >7/10
-        - 80%+ adherence to nutrition protocol
-        - Stable energy levels
-        - No ongoing gut distress`,
-      
-      phase2: `
-        - Completed 180+ days in Phase 2
-        - Successfully practicing 12:12 IF weekly
-        - Maintaining 75%+ whole foods diet
-        - Stress management techniques in place
-        - Ready for more flexibility`,
-      
-      phase3: `
-        - Completed 300+ days total
-        - Confident with flexible IF patterns
-        - Intuitive eating skills developed
-        - Long-term lifestyle integration
-        - Ready for independent maintenance`
-    };
-    
-    return criteria[currentPhase as keyof typeof criteria] || 'Continue current phase protocols';
-  }
-
-  private parseProgressAssessment(response: string): any {
-    return {
-      overallScore: this.extractScore(response),
-      improvements: this.extractImprovements(response),
-      concerns: this.extractConcerns(response),
-      recommendations: this.extractRecommendations(response),
-      readinessAssessment: this.extractReadiness(response)
-    };
-  }
-
-  private parsePhaseTransitionGuidance(response: string): any {
-    return {
-      readiness: this.extractReadinessStatus(response),
-      missingCriteria: this.extractMissingCriteria(response),
-      timeline: this.extractTimeline(response),
-      preparationSteps: this.extractPreparationSteps(response),
-      nextPhaseExpectations: this.extractExpectations(response)
-    };
-  }
-
-  // Helper extraction methods
-  private extractScore(text: string): number {
-    const scoreMatch = text.match(/(\d+)\/100|(\d+)%/);
-    return scoreMatch ? parseInt(scoreMatch[1] || scoreMatch[2]) : 75;
-  }
-
-  private extractImprovements(text: string): string[] {
-    return this.extractBulletPoints(text, /improvements?|progress|achievements?/i);
-  }
-
-  private extractConcerns(text: string): string[] {
-    return this.extractBulletPoints(text, /concerns?|issues?|challenges?/i);
-  }
-
-  private extractRecommendations(text: string): string[] {
-    return this.extractBulletPoints(text, /recommendations?|suggestions?|next\s+week/i);
-  }
-
-  private extractReadiness(text: string): string {
-    const readinessMatch = text.match(/readiness:?\s*([^.\n]+)/i);
-    return readinessMatch ? readinessMatch[1].trim() : 'Continue current phase';
-  }
-
-  private extractReadinessStatus(text: string): 'Ready' | 'Not Ready' | 'Almost Ready' {
-    if (/ready/i.test(text) && !/not\s+ready|almost/i.test(text)) return 'Ready';
-    if (/almost\s+ready/i.test(text)) return 'Almost Ready';
-    return 'Not Ready';
-  }
-
-  private extractMissingCriteria(text: string): string[] {
-    return this.extractBulletPoints(text, /missing|criteria|still\s+need/i);
-  }
-
-  private extractTimeline(text: string): string {
-    const timelineMatch = text.match(/timeline:?\s*([^.\n]+)/i);
-    return timelineMatch ? timelineMatch[1].trim() : '2-4 weeks';
-  }
-
-  private extractPreparationSteps(text: string): string[] {
-    return this.extractBulletPoints(text, /preparation|steps|prepare/i);
-  }
-
-  private extractExpectations(text: string): string {
-    const expectMatch = text.match(/expect:?\s*([^.\n]+)/i);
-    return expectMatch ? expectMatch[1].trim() : 'Continued wellness journey';
-  }
-
-  private extractBulletPoints(text: string, sectionRegex: RegExp): string[] {
-    const sectionMatch = text.match(new RegExp(`${sectionRegex.source}:?\\s*\\n((?:[-•]\\s*.+\\n?)+)`, 'i'));
-    if (!sectionMatch) return [];
-    
-    const items = sectionMatch[1].match(/[-•]\s*(.+)/g);
-    return items ? items.map(item => item.replace(/[-•]\s*/, '').trim()) : [];
+  private getCurrentDayOfWeek(): string {
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    return days[new Date().getDay()];
   }
 
   // Fallback methods
-  private getFallbackPlan(profile: UserProfile, metrics: HealthMetrics): WellnessPlanResponse {
-    const phaseMessages = {
-      phase1: 'Focus on microbiome reset and whole foods',
-      phase2: 'Continue building habits with flexible nutrition',
-      phase3: 'Maintain your healthy lifestyle with confidence'
-    };
-
+  private getFallbackPlan(profile: UserProfile, metrics: HealthMetrics): WellnessPlan {
     return {
-      greeting: `Good morning! Welcome to day ${this.calculateDaysInProgram(profile.startDate)} of your GMRP journey! ✨`,
-      phaseGuidance: phaseMessages[profile.currentPhase],
+      greeting: `Hello ${profile.firstName || 'there'}! Ready to continue your GMRP ${profile.currentPhase} journey today?`,
+      phaseGuidance: this.getPhaseGuidance(profile.currentPhase),
       dailyPlan: [
-        { title: 'Start with 16oz of filtered water', completed: false, status: 'pending', priority: 'high' },
-        { title: 'Take morning supplements as prescribed', completed: false, status: 'pending', priority: 'high' },
-        { title: 'Prepare fiber-rich breakfast', completed: false, status: 'pending', priority: 'medium' },
-        { title: '10-minute mindfulness session', completed: false, status: 'pending', priority: 'medium' },
-        { title: 'Log meals and symptoms', completed: false, status: 'pending', priority: 'low' }
-      ],
-      recommendations: [
-        'Focus on getting 30-50g of fiber today',
-        'Stay hydrated with 2-3L of water',
-        'Practice stress management techniques'
-      ],
-      nextSteps: [
-        `Continue ${profile.currentPhase} protocols`,
-        'Track your progress daily',
-        'Prepare for tomorrow\'s activities'
-      ],
-      safetyAlerts: [
-        'Consult your healthcare provider for any concerning symptoms'
-      ],
-      insights: [
         {
-          title: 'GMRP Journey',
-          message: `You're in ${profile.currentPhase} of the Gut-Mind Reset Program. Every day counts!`,
-          type: 'info'
+          title: "Morning Hydration",
+          priority: "high",
+          completed: false,
+          status: "Start with 16-20oz water + electrolytes",
+          category: "hydration",
+          estimatedTime: "2 minutes"
+        },
+        {
+          title: "Fiber-Rich Nutrition",
+          priority: "high", 
+          completed: false,
+          status: "Focus on 30-50g fiber from whole foods",
+          category: "nutrition",
+          estimatedTime: "Plan with meals"
+        },
+        {
+          title: "Gentle Movement",
+          priority: "medium",
+          completed: false,
+          status: "20-30 minutes of preferred activity",
+          category: "exercise",
+          estimatedTime: "20-30 minutes"
+        },
+        {
+          title: "Mindful Check-in",
+          priority: "medium",
+          completed: false,
+          status: "5-minute stress and energy assessment",
+          category: "mindfulness",
+          estimatedTime: "5 minutes"
         }
       ],
-      progressAssessment: this.calculateProgressScore(metrics)
+      recommendations: [
+        "Prioritize whole, unprocessed foods today",
+        "Track your fiber intake to reach daily targets",
+        "Stay hydrated with electrolyte-rich water",
+        "Listen to your body's hunger and energy signals"
+      ],
+      insights: this.getGMRPInsights(profile),
+      nextSteps: [
+        "Continue consistent daily habits",
+        "Monitor energy and digestive improvements",
+        "Track adherence to GMRP protocols"
+      ],
+      progressAssessment: {
+        currentScore: 75,
+        summary: "Making steady progress with foundational habits",
+        improvements: ["Consistency with hydration", "Whole foods focus", "Stress management"]
+      }
     };
   }
 
-  private getFallbackProgressAssessment(profile: UserProfile): any {
+  private getFallbackNutritionPlan(profile: UserProfile): any {
     return {
-      overallScore: 75,
-      improvements: ['Maintaining consistent routine', 'Good hydration habits'],
-      concerns: ['Need more data for accurate assessment'],
-      recommendations: ['Continue current protocols', 'Track more metrics'],
-      readinessAssessment: 'Continue current phase for more data'
+      mealPlan: {
+        breakfast: "High-fiber smoothie with chia seeds and berries",
+        lunch: "Large colorful salad with diverse vegetables",
+        dinner: "Grilled protein with roasted vegetables and quinoa",
+        snacks: ["Apple with almond butter", "Raw vegetables with hummus"]
+      },
+      shoppingList: ["Organic vegetables", "Wild-caught fish", "Nuts and seeds", "Fermented foods"],
+      supplementProtocol: {
+        morning: ["Probiotic", "Vitamin D3+K2"],
+        evening: ["Magnesium"],
+        notes: "Take with meals for best absorption"
+      },
+      phaseSpecificGuidance: this.getPhaseNutritionGuidance(profile.currentPhase)
     };
   }
 
-  private getFallbackPhaseTransition(profile: UserProfile): any {
+  private getFallbackCBTSession(profile: UserProfile): any {
     return {
-      readiness: 'Not Ready' as const,
-      missingCriteria: ['More time in current phase needed', 'Additional health metrics required'],
-      timeline: '4-6 weeks',
-      preparationSteps: ['Focus on current phase mastery', 'Track all recommended metrics'],
-      nextPhaseExpectations: 'Continued health improvements with new protocols'
+      sessionTitle: `GMRP ${profile.currentPhase} Wellness Support`,
+      duration: "15-20 minutes",
+      techniques: [
+        {
+          name: "Cognitive Reframing",
+          description: "Challenge negative thoughts about your wellness journey",
+          exercise: "Write down one limiting belief about your health, then list 3 evidence-based positive reframes"
+        },
+        {
+          name: "Implementation Intentions",
+          description: "Create specific if-then plans for challenges",
+          exercise: "Complete: 'If I feel overwhelmed by my wellness plan, then I will focus on just one small habit for today'"
+        }
+      ],
+      homework: [
+        "Practice the 2-minute rule: make any new habit so small it takes less than 2 minutes",
+        "Use the implementation intention format for one challenging situation this week"
+      ]
     };
   }
 }

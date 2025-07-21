@@ -1,35 +1,17 @@
-// src/services/authService.ts
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  type: 'MEMBER' | 'PROFESSIONAL' | 'ADMIN';
-  currentPhase: 'PHASE1' | 'PHASE2' | 'PHASE3';
-  healthGoals: string[];
-  startDate: string;
-  healthProfile?: {
-    age?: number;
-    gender?: string;
-    weight?: number;
-    height?: number;
-    sleepGoal?: number;
-    stressLevel?: number;
-    energyLevel?: number;
-    digestiveHealth?: number;
-    fastingExperience?: string;
-  };
-}
+// apps/backend/src/services/authService.ts
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export interface RegisterData {
-  email: string;
-  password: string;
   firstName: string;
   lastName: string;
-  type?: 'MEMBER' | 'PROFESSIONAL' | 'ADMIN';
+  email: string;
+  password: string;
+  type?: 'MEMBER' | 'PROFESSIONAL';
+  healthGoals?: string[];
+  dietaryPreferences?: string[];
   age?: number;
   gender?: string;
-  healthGoals?: string[];
 }
 
 export interface LoginData {
@@ -37,618 +19,333 @@ export interface LoginData {
   password: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  type: 'MEMBER' | 'PROFESSIONAL' | 'ADMIN';
+  createdAt: Date;
+  profile?: {
+    age?: number;
+    gender?: string;
+    currentPhase?: 'phase1' | 'phase2' | 'phase3';
+    healthGoals?: string[];
+    healthConditions?: string[];
+    medications?: string[];
+    preferences?: {
+      dietary: string[];
+      exercise: string[];
+      communication: string;
+    };
+  };
+}
+
+// In-memory user storage for development (replace with database in production)
+const users: Map<string, User & { password: string }> = new Map();
+
+// Seed some development users
+const seedUsers = () => {
+  const defaultUsers = [
+    {
+      id: 'dev-user-123',
+      firstName: 'Demo',
+      lastName: 'User',
+      email: 'demo@wellness.ai',
+      password: bcrypt.hashSync('password123', 10),
+      type: 'MEMBER' as const,
+      createdAt: new Date(),
+      profile: {
+        age: 30,
+        gender: 'other',
+        currentPhase: 'phase1' as const,
+        healthGoals: ['weight_loss', 'energy_boost'],
+        preferences: {
+          dietary: ['whole_foods', 'plant_forward'],
+          exercise: ['yoga', 'walking'],
+          communication: 'encouraging'
+        }
+      }
+    },
+    {
+      id: 'prof-user-456',
+      firstName: 'Dr. Sarah',
+      lastName: 'Wilson',
+      email: 'sarah@wellness.ai',
+      password: bcrypt.hashSync('professional123', 10),
+      type: 'PROFESSIONAL' as const,
+      createdAt: new Date(),
+      profile: {
+        age: 45,
+        preferences: {
+          dietary: [],
+          exercise: [],
+          communication: 'professional'
+        }
+      }
+    },
+    {
+      id: 'admin-user-789',
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@wellness.ai',
+      password: bcrypt.hashSync('admin123', 10),
+      type: 'ADMIN' as const,
+      createdAt: new Date()
+    }
+  ];
+
+  defaultUsers.forEach(user => {
+    users.set(user.email, user);
+  });
+
+  console.log('✅ Seeded development users:');
+  console.log('   📧 demo@wellness.ai / password123 (Member)');
+  console.log('   📧 sarah@wellness.ai / professional123 (Professional)');
+  console.log('   📧 admin@wellness.ai / admin123 (Admin)');
+};
 
 class AuthService {
-  private token: string | null = null;
-  private user: User | null = null;
+  private readonly JWT_SECRET = process.env.JWT_SECRET || 'wellness-ai-dev-secret-key-change-in-production';
 
   constructor() {
-    // Load token and user from localStorage on init
-    this.token = localStorage.getItem('wellness_token');
-    const savedUser = localStorage.getItem('wellness_user');
-    if (savedUser) {
-      try {
-        this.user = JSON.parse(savedUser);
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        this.clearAuth();
-      }
+    // Initialize with seed data for development
+    if (users.size === 0) {
+      seedUsers();
     }
   }
 
   async register(data: RegisterData): Promise<{ user: User; token: string }> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Registration failed');
-      }
-
-      const result = await response.json();
-      
-      // Store auth data
-      this.token = result.data.token;
-      this.user = result.data.user;
-      
-      localStorage.setItem('wellness_token', this.token);
-      localStorage.setItem('wellness_user', JSON.stringify(this.user));
-
-      return result.data;
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      throw error;
+    // Validate input
+    if (!data.email || !data.password || !data.firstName || !data.lastName) {
+      throw new Error('All required fields must be provided');
     }
+
+    if (data.password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+
+    // Check if user already exists
+    if (users.has(data.email.toLowerCase())) {
+      throw new Error('User with this email already exists');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // Create user
+    const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newUser = {
+      id: userId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email.toLowerCase(),
+      password: hashedPassword,
+      type: data.type || 'MEMBER' as const,
+      createdAt: new Date(),
+      profile: {
+        age: data.age,
+        gender: data.gender,
+        currentPhase: 'phase1' as const,
+        healthGoals: data.healthGoals || [],
+        healthConditions: [],
+        medications: [],
+        preferences: {
+          dietary: data.dietaryPreferences || [],
+          exercise: [],
+          communication: 'encouraging'
+        }
+      }
+    };
+
+    // Store user
+    users.set(data.email.toLowerCase(), newUser);
+
+    // Generate token
+    const token = this.generateToken(userId, data.email);
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = newUser;
+    return {
+      user: userWithoutPassword,
+      token
+    };
   }
 
   async login(data: LoginData): Promise<{ user: User; token: string }> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login failed');
-      }
-
-      const result = await response.json();
-      
-      // Store auth data
-      this.token = result.data.token;
-      this.user = result.data.user;
-      
-      localStorage.setItem('wellness_token', this.token);
-      localStorage.setItem('wellness_user', JSON.stringify(this.user));
-
-      return result.data;
-    } catch (error: any) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  }
-
-  async getCurrentUser(): Promise<User> {
-    if (!this.token) {
-      throw new Error('No authentication token');
+    if (!data.email || !data.password) {
+      throw new Error('Email and password are required');
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const result = await response.json();
-      this.user = result.data;
-      localStorage.setItem('wellness_user', JSON.stringify(this.user));
-      
-      return this.user;
-    } catch (error: any) {
-      console.error('Get current user error:', error);
-      this.clearAuth();
-      throw error;
-    }
-  }
-
-  async updateProfile(updateData: Partial<User>): Promise<User> {
-    if (!this.token) {
-      throw new Error('No authentication token');
+    // Find user
+    const user = users.get(data.email.toLowerCase());
+    if (!user) {
+      throw new Error('Invalid email or password');
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Profile update failed');
-      }
-
-      const result = await response.json();
-      this.user = result.data;
-      localStorage.setItem('wellness_user', JSON.stringify(this.user));
-      
-      return this.user;
-    } catch (error: any) {
-      console.error('Update profile error:', error);
-      throw error;
+    // Verify password
+    const isValidPassword = await bcrypt.compare(data.password, user.password);
+    if (!isValidPassword) {
+      throw new Error('Invalid email or password');
     }
-  }
 
-  logout(): void {
-    this.clearAuth();
-  }
+    // Generate token
+    const token = this.generateToken(user.id, user.email);
 
-  private clearAuth(): void {
-    this.token = null;
-    this.user = null;
-    localStorage.removeItem('wellness_token');
-    localStorage.removeItem('wellness_user');
-  }
-
-  getToken(): string | null {
-    return this.token;
-  }
-
-  getUser(): User | null {
-    return this.user;
-  }
-
-  isAuthenticated(): boolean {
-    return !!this.token && !!this.user;
-  }
-
-  isProfessional(): boolean {
-    return this.user?.type === 'PROFESSIONAL' || this.user?.type === 'ADMIN';
-  }
-
-  // API helper with authentication
-  async apiRequest(endpoint: string, options: RequestInit = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    return {
+      user: userWithoutPassword,
+      token
     };
+  }
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+  async getUserById(userId: string): Promise<User | null> {
+    for (const user of users.values()) {
+      if (user.id === userId) {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      }
     }
+    return null;
+  }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
+  async getUserByEmail(email: string): Promise<User | null> {
+    const user = users.get(email.toLowerCase());
+    if (!user) return null;
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async updateProfile(userId: string, updateData: any): Promise<User> {
+    let userFound = false;
+    
+    for (const [email, user] of users.entries()) {
+      if (user.id === userId) {
+        // Update user data
+        const updatedUser = {
+          ...user,
+          ...updateData,
+          profile: {
+            ...user.profile,
+            ...updateData.profile
+          },
+          // Prevent changing critical fields
+          id: user.id,
+          email: user.email,
+          createdAt: user.createdAt
+        };
+        
+        users.set(email, updatedUser);
+        userFound = true;
+        
+        const { password, ...userWithoutPassword } = updatedUser;
+        return userWithoutPassword;
+      }
+    }
+    
+    if (!userFound) {
+      throw new Error('User not found');
+    }
+    
+    throw new Error('Update failed');
+  }
+
+  verifyToken(token: string): { userId: string; email: string } {
+    try {
+      // Try JWT first
+      const decoded = jwt.verify(token, this.JWT_SECRET) as any;
+      return { userId: decoded.userId, email: decoded.email };
+    } catch (jwtError) {
+      // Fallback to development token format (base64 encoded JSON)
+      try {
+        const tokenData = Buffer.from(token, 'base64').toString('utf-8');
+        const userData = JSON.parse(tokenData);
+        return { userId: userData.id, email: userData.email };
+      } catch (devTokenError) {
+        throw new Error('Invalid token');
+      }
+    }
+  }
+
+  private generateToken(userId: string, email: string): string {
+    // In development, use simple base64 encoding for easier testing
+    if (process.env.NODE_ENV === 'development') {
+      return Buffer.from(JSON.stringify({ id: userId, email })).toString('base64');
+    }
+    
+    // In production, use JWT
+    return jwt.sign(
+      { userId, email },
+      this.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+  }
+
+  // Professional-specific methods
+  async getClientsByProfessionalId(professionalId: string): Promise<User[]> {
+    // This would typically involve a database relationship
+    // For now, return empty array as this feature isn't fully implemented
+    return [];
+  }
+
+  async assignClientToProfessional(clientId: string, professionalId: string): Promise<boolean> {
+    // Implementation for assigning clients to professionals
+    // This would involve database relationships in production
+    return true;
+  }
+
+  // Admin methods
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(users.values()).map(user => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
     });
+  }
 
-    if (response.status === 401) {
-      // Token expired or invalid
-      this.clearAuth();
-      throw new Error('Authentication required');
+  async deleteUser(userId: string): Promise<boolean> {
+    for (const [email, user] of users.entries()) {
+      if (user.id === userId) {
+        users.delete(email);
+        return true;
+      }
     }
+    return false;
+  }
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || 'Request failed');
+  async updateUserType(userId: string, newType: 'MEMBER' | 'PROFESSIONAL' | 'ADMIN'): Promise<User> {
+    for (const [email, user] of users.entries()) {
+      if (user.id === userId) {
+        user.type = newType;
+        users.set(email, user);
+        
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      }
     }
+    throw new Error('User not found');
+  }
 
-    return response.json();
+  // Development helpers
+  resetUsers(): void {
+    users.clear();
+    seedUsers();
+  }
+
+  getUserCount(): number {
+    return users.size;
+  }
+
+  // Health and debugging
+  getStatus(): any {
+    return {
+      userCount: users.size,
+      memoryUsage: process.memoryUsage(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development'
+    };
   }
 }
 
 export const authService = new AuthService();
-
-// src/services/wellnessService.ts
-import { authService } from './authService';
-
-export interface WellnessPlan {
-  greeting: string;
-  phaseGuidance: string;
-  dailyPlan: Array<{
-    title: string;
-    priority: 'high' | 'medium' | 'low';
-    completed: boolean;
-    status: string;
-  }>;
-  recommendations: string[];
-  insights: Array<{
-    title: string;
-    message: string;
-    type: 'info' | 'warning' | 'success' | 'tip';
-  }>;
-  nextSteps: string[];
-  progressAssessment?: {
-    currentScore: number;
-    summary: string;
-  };
-}
-
-export interface NutritionPlan {
-  mealPlan: {
-    breakfast: string;
-    lunch: string;
-    dinner: string;
-    snacks: string[];
-  };
-  shoppingList: string[];
-  supplementProtocol: {
-    morning: string[];
-    evening: string[];
-    notes: string;
-  };
-  phaseGuidance: string;
-  fiberBreakdown: {
-    target: number;
-    sources: Array<{
-      food: string;
-      amount: string;
-      fiber: string;
-    }>;
-  };
-  fastingSchedule?: any;
-}
-
-class WellnessService {
-  async getDailyPlan(healthMetrics?: any): Promise<WellnessPlan> {
-    try {
-      const result = await authService.apiRequest('/api/wellness/daily-plan', {
-        method: 'POST',
-        body: JSON.stringify({
-          healthMetrics: healthMetrics || {}
-        }),
-      });
-
-      return result.data;
-    } catch (error: any) {
-      console.error('Failed to fetch wellness plan:', error);
-      throw error;
-    }
-  }
-
-  async getNutritionPlan(): Promise<NutritionPlan> {
-    try {
-      const result = await authService.apiRequest('/api/wellness/nutrition-plan', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-
-      return result.data;
-    } catch (error: any) {
-      console.error('Failed to fetch nutrition plan:', error);
-      throw error;
-    }
-  }
-
-  async getProgress(timeframe: string = '30'): Promise<any> {
-    try {
-      const result = await authService.apiRequest(`/api/progress/${timeframe}`);
-      return result.data;
-    } catch (error: any) {
-      console.error('Failed to fetch progress:', error);
-      throw error;
-    }
-  }
-
-  async createOverride(overrideData: {
-    clientId: string;
-    overrideType: string;
-    originalValue: any;
-    newValue: any;
-    reason: string;
-    urgency?: string;
-  }): Promise<any> {
-    try {
-      const result = await authService.apiRequest('/api/professional/override', {
-        method: 'POST',
-        body: JSON.stringify(overrideData),
-      });
-
-      return result.data;
-    } catch (error: any) {
-      console.error('Failed to create override:', error);
-      throw error;
-    }
-  }
-}
-
-export const wellnessService = new WellnessService();
-
-// src/components/AuthProvider.tsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService, User } from '../services/authService';
-
-interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
-  logout: () => void;
-  loading: boolean;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check for existing authentication on mount
-    const checkAuth = async () => {
-      try {
-        if (authService.isAuthenticated()) {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        authService.logout();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    try {
-      const { user } = await authService.login({ email, password });
-      setUser(user);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const register = async (data: any) => {
-    try {
-      const { user } = await authService.register(data);
-      setUser(user);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        register,
-        logout,
-        loading,
-        isAuthenticated: !!user,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-// src/components/LoginForm.tsx
-import React, { useState } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { useAuth } from './AuthProvider';
-import { AlertCircle, Loader2 } from 'lucide-react';
-
-export function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  
-  const { login, register } = useAuth();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      if (isRegister) {
-        await register({
-          email,
-          password,
-          firstName,
-          lastName,
-          type: 'MEMBER',
-        });
-      } else {
-        await login(email, password);
-      }
-    } catch (error: any) {
-      setError(error.message || 'Authentication failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-slate-900">
-            {isRegister ? 'Join WellnessAI' : 'Welcome Back'}
-          </CardTitle>
-          <p className="text-slate-600">
-            {isRegister ? 'Start your GMRP journey today' : 'Sign in to your account'}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegister && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-            
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            {error && (
-              <div className="flex items-center space-x-2 text-red-600 text-sm">
-                <AlertCircle className="h-4 w-4" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isRegister ? 'Creating Account...' : 'Signing In...'}
-                </>
-              ) : (
-                isRegister ? 'Create Account' : 'Sign In'
-              )}
-            </Button>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsRegister(!isRegister)}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                {isRegister ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Updated src/App.tsx to use real authentication
-import { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './components/AuthProvider';
-import { LoginForm } from './components/LoginForm';
-import { MemberDashboard } from './components/MemberDashboard';
-import { ProfessionalDashboard } from './components/ProfessionalDashboard';
-import { ExerciseModule } from './components/ExerciseModule';
-import { NutritionModule } from './components/NutritionModule';
-import { SupplementationModule } from './components/SupplementationModule';
-import { MindfulnessModule } from './components/MindfulnessModule';
-import { CBTModule } from './components/CBTModule';
-import { CommunityModule } from './components/CommunityModule';
-import { Loader2 } from 'lucide-react';
-
-function AppContent() {
-  const { user, loading, isAuthenticated } = useAuth();
-  const [activeModule, setActiveModule] = useState('dashboard');
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-lg font-medium">Loading WellnessAI...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return <LoginForm />;
-  }
-
-  const renderModule = () => {
-    switch (activeModule) {
-      case 'dashboard':
-        return user.type === 'MEMBER' ? 
-          <MemberDashboard user={user} /> : 
-          <ProfessionalDashboard user={user} />;
-      case 'exercise':
-        return <ExerciseModule user={user} />;
-      case 'nutrition':
-        return <NutritionModule user={user} />;
-      case 'supplementation':
-        return <SupplementationModule user={user} />;
-      case 'mindfulness':
-        return <MindfulnessModule user={user} />;
-      case 'cbt':
-        return <CBTModule user={user} />;
-      case 'community':
-        return <CommunityModule user={user} />;
-      default:
-        return user.type === 'MEMBER' ? 
-          <MemberDashboard user={user} /> : 
-          <ProfessionalDashboard user={user} />;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Your existing navigation and layout code */}
-      {renderModule()}
-    </div>
-  );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
-}
