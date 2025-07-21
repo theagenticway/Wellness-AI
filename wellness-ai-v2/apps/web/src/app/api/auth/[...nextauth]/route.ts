@@ -18,10 +18,10 @@ const handler = NextAuth({
         try {
           // Use internal Docker network URL for server-side auth calls
           const apiUrl = process.env.INTERNAL_API_URL || 'http://backend:3001';
-          console.log('Calling backend auth at:', `${apiUrl}/api/auth/login`);
+          console.log('Calling backend auth at:', `${apiUrl}/auth/login`);
           
           // Call our backend auth endpoint
-          const response = await fetch(`${apiUrl}/api/auth/login`, {
+          const response = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -1,30 +1,10 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
-
-// Mock users database (in production, this would be in a real database)
-const users: any[] = [
-  {
-    id: 1,
-    firstName: 'Demo',
-    lastName: 'User',
-    email: 'demo@wellnessai.com',
-    password: '$2a$10$N9qo8uLOickgx2ZMRZoMye1VfWoKP3x8Q.7EbLRBOQ/2HXOJZLGaS', // 'password123'
-    role: 'member',
-    currentPhase: 'phase1',
-  },
-  {
-    id: 2,
-    firstName: 'Professional',
-    lastName: 'User',
-    email: 'professional@wellnessai.com',
-    password: '$2a$10$N9qo8uLOickgx2ZMRZoMye1VfWoKP3x8Q.7EbLRBOQ/2HXOJZLGaS', // 'password123'
-    role: 'professional',
-    currentPhase: 'phase1',
-  }
-];
+const prisma = new PrismaClient();
 
 // Login endpoint
 router.post('/login', async (req: Request, res: Response) => {
@@ -38,8 +18,11 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Find user by email
-    const user = users.find(u => u.email === email);
+    // Find user by email in database
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -56,12 +39,18 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
+    // Update last login time
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    });
+
     // Generate JWT token
     const token = jwt.sign(
       { 
         id: user.id, 
         email: user.email, 
-        role: user.role 
+        role: user.type 
       },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '24h' }
@@ -97,7 +86,10 @@ router.post('/register', async (req: Request, res: Response) => {
     }
 
     // Check if user already exists
-    const existingUser = users.find(u => u.email === email);
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -108,25 +100,24 @@ router.post('/register', async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
-    const newUser = {
-      id: users.length + 1,
-      firstName,
-      lastName,
-      email,
-      password: hashedPassword,
-      role: 'member',
-      currentPhase: 'phase1',
-    };
-
-    users.push(newUser);
+    // Create new user in database
+    const newUser = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        type: 'MEMBER',
+        currentPhase: 'PHASE1',
+      }
+    });
 
     // Generate JWT token
     const token = jwt.sign(
       { 
         id: newUser.id, 
         email: newUser.email, 
-        role: newUser.role 
+        role: newUser.type 
       },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '24h' }
