@@ -2,22 +2,19 @@
 FROM node:18-alpine
 
 # Set the working directory in the container
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Copy package.json and package-lock.json to the working directory
-COPY apps/backend/package*.json ./
+COPY package*.json ./
 
-# Install any needed packages
+# Install dependencies
 RUN npm install
 
 # Copy the backend application's code
-COPY apps/backend/ .
+COPY . .
 
-# Copy types directory from project root
-COPY types/ ./types/
-
-# Generate Prisma client for Alpine Linux
-RUN npx prisma generate
+# Generate Prisma client if needed
+RUN npx prisma generate --schema=./prisma/schema.prisma || echo "No Prisma schema found"
 
 # Make port 3001 available to the world outside this container
 EXPOSE 3001

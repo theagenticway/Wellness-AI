@@ -11,12 +11,17 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials');
           return null;
         }
 
         try {
+          // Use internal Docker network URL for server-side auth calls
+          const apiUrl = process.env.INTERNAL_API_URL || 'http://backend:3001';
+          console.log('Calling backend auth at:', `${apiUrl}/api/auth/login`);
+          
           // Call our backend auth endpoint
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/login`, {
+          const response = await fetch(`${apiUrl}/api/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -27,20 +32,27 @@ const handler = NextAuth({
             }),
           });
 
+          console.log('Backend response status:', response.status);
+
           if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Backend error response:', errorText);
             return null;
           }
 
-          const user = await response.json();
+          const result = await response.json();
+          console.log('Backend success response:', result);
           
-          if (user && user.success) {
-            return {
-              id: user.data.user.id,
-              email: user.data.user.email,
-              name: `${user.data.user.firstName} ${user.data.user.lastName}`,
-              role: user.data.user.role || 'member',
-              currentPhase: user.data.user.currentPhase,
+          if (result && result.success) {
+            const user = {
+              id: result.user.id.toString(),
+              email: result.user.email,
+              name: `${result.user.firstName} ${result.user.lastName}`,
+              role: result.user.role || 'member',
+              currentPhase: result.user.currentPhase,
             };
+            console.log('Returning NextAuth user:', user);
+            return user;
           }
           return null;
         } catch (error) {

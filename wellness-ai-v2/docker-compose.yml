@@ -1,42 +1,77 @@
+version: '3.8'
+
 services:
+  # PostgreSQL Database
   db:
     image: postgres:13
     container_name: wellness_db
-    restart: always
     environment:
-      POSTGRES_USER: user
+      POSTGRES_DB: wellnessai
+      POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: wellness_ai
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - wellness_db_data:/var/lib/postgresql/data
+    networks:
+      - wellness-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d wellnessai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Backend API
   backend:
     build:
-      context: ../
-      dockerfile: ./apps/backend/Dockerfile
+      context: ./apps/backend
+      dockerfile: Dockerfile
     container_name: wellness_backend
-    restart: always
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://admin:password@db:5432/wellnessai
+      JWT_SECRET: your-secret-key-here
+      NEXTAUTH_SECRET: your-nextauth-secret-here
     ports:
       - "3001:3001"
     depends_on:
-      - db
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/wellness_ai?schema=public
+      db:
+        condition: service_healthy
+    networks:
+      - wellness-network
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+    command: npm run dev
 
+  # Frontend Web App
   web:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
-    container_name: wellness_frontend
-    restart: always
+    container_name: wellness_web
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      INTERNAL_API_URL: http://backend:3001
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: your-nextauth-secret-here
     ports:
       - "3000:3000"
     depends_on:
       - backend
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    networks:
+      - wellness-network
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
 
 volumes:
-  postgres_data:
+  wellness_db_data:
+
+networks:
+  wellness-network:
+    driver: bridge
