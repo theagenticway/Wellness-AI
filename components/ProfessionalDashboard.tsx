@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { User } from '../types/user';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { User } from '../types/user';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import { 
   Users, 
   AlertTriangle, 
   TrendingUp, 
   Activity,
   MessageSquare,
-  Calendar
+  Calendar,
+  BarChart3
 } from 'lucide-react';
 
 interface ProfessionalDashboardProps {
@@ -18,15 +18,12 @@ interface ProfessionalDashboardProps {
 }
 
 export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
-  const [selectedClient, setSelectedClient] = useState<string | null>(null);
-
-  // Mock client data
   const clients = [
     {
       id: '1',
       name: 'Sarah Johnson',
       email: 'sarah.j@email.com',
-      phase: 'phase2',
+      phase: 'Phase 2',
       progress: 85,
       alerts: ['Missed supplement'],
       status: 'active'
@@ -35,7 +32,7 @@ export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
       id: '2',
       name: 'Mike Chen',
       email: 'mike.c@email.com',
-      phase: 'phase1',
+      phase: 'Phase 1',
       progress: 72,
       alerts: [],
       status: 'active'
@@ -44,7 +41,7 @@ export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
       id: '3',
       name: 'Emma Davis',
       email: 'emma.d@email.com',
-      phase: 'phase3',
+      phase: 'Phase 3',
       progress: 94,
       alerts: ['High stress levels'],
       status: 'needs_attention'
@@ -71,49 +68,41 @@ export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Professional Dashboard</h1>
-            <p className="text-purple-100 mb-4">Welcome back, Dr. {user.lastName}</p>
-            <div className="flex items-center space-x-4">
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                {overviewStats.totalClients} Total Clients
-              </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                {overviewStats.needsAttention} Need Attention
-              </Badge>
-            </div>
+        <h1 className="text-2xl font-bold mb-2">Professional Dashboard</h1>
+        <p className="text-purple-100 mb-4">Welcome back, Dr. {user.lastName}</p>
+        <div className="flex items-center space-x-6">
+          <div className="bg-white/20 rounded-lg p-3">
+            <Users className="h-6 w-6" />
           </div>
-          <div className="hidden md:block">
-            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <Users className="h-12 w-12 text-white" />
-            </div>
+          <div>
+            <p className="text-sm text-purple-100">Total Clients</p>
+            <p className="text-2xl font-bold">{overviewStats.totalClients}</p>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="glass-effect">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Total Clients</p>
-                <p className="text-2xl font-bold text-slate-900">{overviewStats.totalClients}</p>
+                <p className="text-sm text-gray-600">Total Clients</p>
+                <p className="text-2xl font-bold text-blue-600">{overviewStats.totalClients}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-effect">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Active Today</p>
+                <p className="text-sm text-gray-600">Active Clients</p>
                 <p className="text-2xl font-bold text-green-600">{overviewStats.activeClients}</p>
               </div>
               <Activity className="h-8 w-8 text-green-600" />
@@ -121,11 +110,11 @@ export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="glass-effect">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Need Attention</p>
+                <p className="text-sm text-gray-600">Need Attention</p>
                 <p className="text-2xl font-bold text-yellow-600">{overviewStats.needsAttention}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-yellow-600" />
@@ -133,11 +122,11 @@ export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="glass-effect">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Avg Progress</p>
+                <p className="text-sm text-gray-600">Avg Progress</p>
                 <p className="text-2xl font-bold text-purple-600">{overviewStats.avgProgress}%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
@@ -146,113 +135,89 @@ export function ProfessionalDashboard({ user }: ProfessionalDashboardProps) {
         </Card>
       </div>
 
-      {/* Client List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="glass-effect">
+      {/* Client List and Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-indigo-600" />
-              <span>Client Roster</span>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Client Roster
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {clients.map((client) => (
-                <div
-                  key={client.id}
-                  className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:shadow-md ${
-                    selectedClient === client.id 
-                      ? 'border-indigo-300 bg-indigo-50' 
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                  onClick={() => setSelectedClient(client.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src="" alt={client.name} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-                          {getInitials(client.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-slate-900">{client.name}</h3>
-                          <Badge variant="outline" className={getStatusColor(client.status)}>
-                            {client.status.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-slate-500">{client.email}</p>
+                <div key={client.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <Avatar>
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                        {getInitials(client.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h4 className="font-medium">{client.name}</h4>
+                      <p className="text-sm text-gray-600">{client.email}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {client.phase}
+                        </Badge>
+                        <Badge className={`text-xs ${getStatusColor(client.status)}`}>
+                          {client.status === 'needs_attention' ? 'Needs Attention' : 'Active'}
+                        </Badge>
                       </div>
-                    </div>
-
-                    <div className="text-right">
-                      <Badge variant="secondary" className="bg-blue-500 text-white mb-1">
-                        {client.phase.toUpperCase().replace('PHASE', 'Phase ')}
-                      </Badge>
-                      <p className="text-sm font-medium">{client.progress}%</p>
-                      
-                      {client.alerts.length > 0 && (
-                        <div className="flex items-center space-x-1 mt-1">
-                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                          <span className="text-xs text-yellow-600">{client.alerts.length} alert(s)</span>
-                        </div>
-                      )}
                     </div>
                   </div>
-
-                  {client.alerts.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <div className="flex flex-wrap gap-2">
-                        {client.alerts.map((alert, index) => (
-                          <Badge key={index} variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">
-                            {alert}
-                          </Badge>
-                        ))}
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gray-900">{client.progress}%</p>
+                    <p className="text-sm text-gray-600">Progress</p>
+                    {client.alerts.length > 0 && (
+                      <div className="flex items-center space-x-1 mt-1">
+                        <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                        <span className="text-xs text-yellow-600">{client.alerts.length} alert(s)</span>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Client Actions */}
-        <Card className="glass-effect">
+        {/* Quick Actions */}
+        <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start">
+            <Button className="w-full justify-start" variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
-              Schedule Group Session
+              Schedule Consultation
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            
+            <Button className="w-full justify-start" variant="outline">
               <MessageSquare className="h-4 w-4 mr-2" />
-              Send Broadcast Message
+              Send Message
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            
+            <Button className="w-full justify-start" variant="outline">
               <TrendingUp className="h-4 w-4 mr-2" />
               View Analytics
             </Button>
             
-            {selectedClient && (
-              <div className="pt-4 border-t">
-                <h4 className="font-medium mb-2">Selected Client Actions</h4>
-                <div className="space-y-2">
-                  <Button size="sm" variant="outline" className="w-full">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Message Client
-                  </Button>
-                  <Button size="sm" variant="outline" className="w-full">
-                    <Activity className="h-4 w-4 mr-2" />
-                    View Progress
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Button className="w-full justify-start" variant="outline">
+              <Users className="h-4 w-4 mr-2" />
+              Add New Client
+            </Button>
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">Today's Insights</h4>
+              <p className="text-sm text-blue-700">
+                2 clients completed their weekly goals. 1 client needs follow-up on supplement compliance.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

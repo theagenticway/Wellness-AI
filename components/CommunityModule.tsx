@@ -1,94 +1,126 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useState } from 'react';
 import { User } from '../types/user';
-import { Users, MessageSquare, Trophy, Heart, Plus, TrendingUp } from 'lucide-react';
+import { Card } from './ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Heart, MessageCircle, Plus } from 'lucide-react';
 
 interface CommunityModuleProps {
   user: User;
 }
 
-export function CommunityModule({ user }: CommunityModuleProps) {
-  const challenges = [
-    { name: '30-Day Fiber Challenge', participants: 156, status: 'active', progress: 67 },
-    { name: 'Mindful Eating Week', participants: 89, status: 'starting_soon', progress: 0 },
-    { name: 'Hydration Heroes', participants: 203, status: 'completed', progress: 100 }
-  ];
+const communityPosts = [
+  {
+    id: '1',
+    author: 'Sophia Bennett',
+    avatar: 'https://randomuser.me/api/portraits/women/2.jpg',
+    time: '2h ago',
+    content: "I've been focusing on mindfulness and meditation this week. It's been helping me manage stress and stay present. Anyone else have tips for staying present?",
+    likes: 12,
+    comments: 3,
+  },
+  {
+    id: '2',
+    author: 'Ethan Carter',
+    avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+    time: '4h ago',
+    content: "Just completed a 5k run! Feeling energized and ready to tackle the day. What's your favorite way to get your heart rate up?",
+    likes: 25,
+    comments: 8,
+  },
+];
 
-  const forumPosts = [
-    { author: 'Sarah M.', title: 'Tips for Phase 1 meal prep?', replies: 12, time: '2h ago' },
-    { author: 'Mike C.', title: 'Feeling amazing after week 3!', replies: 8, time: '4h ago' },
-    { author: 'Emma D.', title: 'Best supplements for gut health?', replies: 15, time: '6h ago' }
-  ];
+export function CommunityModule({ user }: CommunityModuleProps) {
+  const [activeTab, setActiveTab] = useState('Feed');
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Community</h1>
-          <p className="text-slate-600">Connect with fellow wellness warriors</p>
-        </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Post
-        </Button>
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Community</h1>
+        <Plus className="h-6 w-6 text-slate-600" />
       </div>
 
-      {/* Active Challenges */}
-      <Card className="glass-effect">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Trophy className="h-5 w-5 text-yellow-600" />
-            <span>Active Challenges</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {challenges.map((challenge, index) => (
-              <div key={index} className="p-3 border rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">{challenge.name}</h4>
-                  <Badge variant={challenge.status === 'active' ? 'default' : 'secondary'}>
-                    {challenge.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between text-sm text-slate-600">
-                  <span>{challenge.participants} participants</span>
-                  <span>{challenge.progress}% complete</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex border-b mb-4">
+        <TabButton
+          label="Feed"
+          isActive={activeTab === 'Feed'}
+          onClick={() => setActiveTab('Feed')}
+        />
+        <TabButton
+          label="Groups"
+          isActive={activeTab === 'Groups'}
+          onClick={() => setActiveTab('Groups')}
+        />
+        <TabButton
+          label="Messages"
+          isActive={activeTab === 'Messages'}
+          onClick={() => setActiveTab('Messages')}
+        />
+      </div>
 
-      {/* Forum Posts */}
-      <Card className="glass-effect">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
-            <span>Recent Discussions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {forumPosts.map((post, index) => (
-              <div key={index} className="p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="font-medium">{post.title}</h4>
-                  <span className="text-xs text-slate-500">{post.time}</span>
+      <div>
+        {activeTab === 'Feed' && <Feed />}
+        {/* Add other tab content here */}
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ label, isActive, onClick }: { label: string, isActive: boolean, onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`py-2 px-4 text-sm font-medium ${
+        isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Feed() {
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex items-center">
+          <Avatar className="h-10 w-10 mr-3">
+            <AvatarImage src="https://randomuser.me/api/portraits/women/4.jpg" />
+            <AvatarFallback>You</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <p className="font-semibold">Post an update</p>
+            <p className="text-sm text-slate-500">Share your wellness journey</p>
+          </div>
+        </div>
+      </Card>
+      <h2 className="text-lg font-semibold">Today</h2>
+      {communityPosts.map((post) => (
+        <Card key={post.id} className="p-4">
+          <div className="flex items-start">
+            <Avatar className="h-10 w-10 mr-3">
+              <AvatarImage src={post.avatar} alt={post.author} />
+              <AvatarFallback>{post.author.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <p className="font-semibold">{post.author}</p>
+                <p className="text-xs text-slate-500">{post.time}</p>
+              </div>
+              <p className="text-sm mt-1">{post.content}</p>
+              <div className="flex items-center space-x-4 mt-2">
+                <div className="flex items-center space-x-1 text-slate-500">
+                  <Heart className="h-4 w-4" />
+                  <span>{post.likes}</span>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-slate-600">
-                  <span>by {post.author}</span>
-                  <span>•</span>
-                  <span>{post.replies} replies</span>
+                <div className="flex items-center space-x-1 text-slate-500">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>{post.comments}</span>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      ))}
     </div>
   );
 }

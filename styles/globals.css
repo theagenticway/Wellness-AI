@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
-@theme {
+:root {
   --color-background: #ffffff;
   --color-foreground: #0f172a;
   --color-card: #ffffff;

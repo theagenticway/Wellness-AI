@@ -3,8 +3,12 @@ export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
   ENDPOINTS: {
     WELLNESS: {
+      TIPS: '/wellness',
       DAILY_PLAN: '/api/wellness/daily-plan',
       NUTRITION_PLAN: '/api/wellness/nutrition-plan',
+      EXERCISE_PLAN: '/api/wellness/exercise-plan',
+      CBT_PLAN: '/api/wellness/cbt-plan',
+      MINDFULNESS_PLAN: '/api/wellness/mindfulness-plan',
       PROGRESS: '/api/wellness/assess-progress',
       PHASE_TRANSITION: '/api/wellness/phase-transition'
     },
@@ -58,6 +62,33 @@ export const wellnessAPI = {
       body: JSON.stringify({
         userProfile,
         dietaryPreferences
+      })
+    });
+  },
+
+  getExercisePlan: async (userProfile: any) => {
+    return apiCall(API_CONFIG.ENDPOINTS.WELLNESS.EXERCISE_PLAN, {
+      method: 'POST',
+      body: JSON.stringify({
+        userProfile
+      })
+    });
+  },
+
+  getCBPlan: async (userProfile: any) => {
+    return apiCall(API_CONFIG.ENDPOINTS.WELLNESS.CBT_PLAN, {
+      method: 'POST',
+      body: JSON.stringify({
+        userProfile
+      })
+    });
+  },
+
+  getMindfulnessPlan: async (userProfile: any) => {
+    return apiCall(API_CONFIG.ENDPOINTS.WELLNESS.MINDFULNESS_PLAN, {
+      method: 'POST',
+      body: JSON.stringify({
+        userProfile
       })
     });
   },
