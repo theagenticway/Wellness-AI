@@ -1,0 +1,60 @@
+{
+  "name": "backend",
+  "version": "2.0.0-gemini-enhanced",
+  "description": "The WellnessAI Backend Service with Enhanced GMRP Intelligence",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "ts-node src/test.ts",
+    "test:ai": "curl -X POST http://localhost:3001/test-ai -H 'Content-Type: application/json'",
+    "test:wellness": "curl 'http://localhost:3001/test-graph?firstName=John&lastName=Doe&email=john@example.com&type=member&phase=phase1'",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "wellness",
+    "ai",
+    "gmrp",
+    "gut-health",
+    "nutrition",
+    "gemini"
+  ],
+  "author": "WellnessAI Team",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@langchain/core": "^0.3.65",
+    "@langchain/google-genai": "^0.2.15",
+    "@langchain/langgraph": "^0.3.10",
+    "@langchain/openai": "^0.6.2",
+    "@prisma/client": "^6.12.0",
+    "amqplib": "^0.10.8",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "langchain": "^0.3.30",
+    "mongodb": "^6.17.0",
+    "prisma": "^6.12.0"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.7",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.16.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

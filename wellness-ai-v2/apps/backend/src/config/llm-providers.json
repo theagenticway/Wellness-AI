@@ -1,0 +1,29 @@
+{
+  "providers": {
+    "langchain": { "apiKey": "env:LANGCHAIN_API_KEY" },
+    "tavily": { "apiKey": "env:TAVILY_API_KEY" },
+    "google": { "apiKey": "env:GOOGLE_API_KEY" }
+  },
+  "agentModelMapping": {
+    "wellnessAgent": {
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "temperature": 0.5
+    },
+    "nutritionAgent": {
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "temperature": 0.7
+    },
+    "cbtAgent": {
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "temperature": 0.2
+    },
+    "communityAgent": {
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "temperature": 0.9
+    }
+  }
+}

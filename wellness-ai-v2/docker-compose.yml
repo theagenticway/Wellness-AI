@@ -14,7 +14,7 @@ services:
 
   backend:
     build:
-      context: .
+      context: ../
       dockerfile: ./apps/backend/Dockerfile
     container_name: wellness_backend
     restart: always
@@ -25,9 +25,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/wellness_ai?schema=public
 
-  frontend:
+  web:
     build:
-      context: ./wellness-ai-v2/apps/web
+      context: ./apps/web
       dockerfile: Dockerfile
     container_name: wellness_frontend
     restart: always
