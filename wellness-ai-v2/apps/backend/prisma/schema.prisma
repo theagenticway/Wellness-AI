@@ -25,6 +25,7 @@ model User {
   lastLoginAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  planStatus      PlanStatus @default(PENDING)
   
   // Behavioral Economics Profile
   behaviorProfile BehaviorProfile?
@@ -839,4 +840,10 @@ enum OverrideUrgency {
   ROUTINE
   IMPORTANT
   URGENT
+}
+
+enum PlanStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
