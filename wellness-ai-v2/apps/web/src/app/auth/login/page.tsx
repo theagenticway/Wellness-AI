@@ -106,7 +106,7 @@ export default function LoginPage() {
       } else {
         // Refresh session and redirect
         await getSession();
-        router.push('/');
+        router.push('/dashboard');
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');

@@ -4,6 +4,7 @@ declare module "next-auth" {
   interface User {
     role?: string
     currentPhase?: string
+    requiresOnboarding?: boolean
   }
 
   interface Session {
@@ -13,11 +14,15 @@ declare module "next-auth" {
       name?: string | null
       role?: string
       currentPhase?: string
+      requiresOnboarding?: boolean
     }
+    backendToken?: string
   }
 
   interface JWT {
     role?: string
     currentPhase?: string
+    requiresOnboarding?: boolean
+    backendToken?: string
   }
 }

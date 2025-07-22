@@ -1,13 +1,15 @@
 // apps/backend/src/index.ts - Enhanced with Behavioral Economics
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { llmGateway } from './services/llmGateway';
 import { behavioralAI } from './services/behavioralAI';
 import authRoutes from './routes/auth';
 import onboardingRoutes from './routes/onboarding';
-import { authenticateToken, AuthenticatedRequest, authMiddleware } from './middleware/auth';
+import userRoutes from './routes/user';
+import { authenticateToken, AuthenticatedRequest, optionalAuth } from './middleware/auth';
+import { seedUsers } from './scripts/seedUsers';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -32,26 +34,59 @@ app.use('/auth', authRoutes);
 
 // Onboarding routes
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/onboarding', onboardingRoutes);
 
-interface AuthenticatedRequest extends Request {
-  userId?: string;
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-  };
-}
-// Simple auth middleware for development
-const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  // Mock authentication for development
-  req.userId = 'demo-user-123';
-  req.user = {
-    id: 'demo-user-123',
-    email: 'demo@wellness.ai',
-    name: 'Demo User'
-  };
-  next();
-};
+// User routes
+app.use('/api/user', userRoutes);
+app.use('/user', userRoutes);
+
+// AuthenticatedRequest interface is now imported from middleware/auth
+
+// Database debug endpoint to check users
+app.get('/debug/users', async (req: Request, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        type: true,
+        createdAt: true
+      }
+    });
+    
+    res.json({
+      success: true,
+      count: users.length,
+      users: users,
+      message: 'Database users found'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to fetch users'
+    });
+  }
+});
+
+// Manual seed endpoint
+app.post('/debug/seed', async (req: Request, res: Response) => {
+  try {
+    await seedUsers();
+    res.json({
+      success: true,
+      message: 'Database seeded successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Seeding failed'
+    });
+  }
+});
 
 // Health check
 app.get('/', (req: Request, res: Response) => {
@@ -1256,8 +1291,19 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// Initialize database with seed data
+async function initializeDatabase() {
+  try {
+    await seedUsers();
+  } catch (error) {
+    console.error('⚠️ Database seeding failed, but server will continue:', error);
+  }
+}
+
 // Start server
-app.listen(port, () => {
+app.listen(port, async () => {
+  // Seed database on startup
+  await initializeDatabase();
   console.log(`🚀 WellnessAI Backend v2.0.0-gemini-enhanced running on port ${port}`);
   console.log(`🧠 Gemini AI Integration: ${process.env.GOOGLE_API_KEY ? '✅ Active' : '❌ Missing API Key'}`);
   console.log(`🎯 Behavioral AI: ✅ Active`);

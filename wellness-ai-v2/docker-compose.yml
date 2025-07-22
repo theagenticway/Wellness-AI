@@ -6,8 +6,8 @@ services:
     image: postgres:13
     container_name: wellness_db
     environment:
-      POSTGRES_DB: wellnessai
-      POSTGRES_USER: admin
+      POSTGRES_DB: wellness_ai
+      POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
@@ -16,7 +16,7 @@ services:
     networks:
       - wellness-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d wellnessai"]
+      test: ["CMD-SHELL", "pg_isready -U user -d wellness_ai"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,7 +30,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgresql://admin:password@db:5432/wellnessai
+      DATABASE_URL: postgresql://user:password@db:5432/wellness_ai
       JWT_SECRET: your-secret-key-here
       NEXTAUTH_SECRET: your-nextauth-secret-here
     ports:
@@ -57,6 +57,7 @@ services:
       INTERNAL_API_URL: http://backend:3001
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: your-nextauth-secret-here
+      JWT_SECRET: your-secret-key-here
     ports:
       - "3000:3000"
     depends_on:

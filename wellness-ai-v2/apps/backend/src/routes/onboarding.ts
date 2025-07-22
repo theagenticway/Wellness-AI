@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -61,28 +62,53 @@ interface OnboardingData {
   };
 }
 
-// Submit onboarding data and create user profile
-router.post('/submit', async (req: Request, res: Response) => {
+// Submit onboarding data and update existing authenticated user profile
+router.post('/submit', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const onboardingData: OnboardingData = req.body;
     
-    // Create user with basic info
-    const user = await prisma.user.create({
+    if (!req.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required for onboarding'
+      });
+    }
+    
+    // Update existing user with onboarding info
+    const user = await prisma.user.update({
+      where: { id: req.userId },
       data: {
-        email: onboardingData.personalInfo.email,
-        password: 'temp_password', // This should be handled by proper auth
         firstName: onboardingData.personalInfo.firstName,
         lastName: onboardingData.personalInfo.lastName,
-        type: 'MEMBER',
         currentPhase: onboardingData.healthInfo.currentPhase.toUpperCase() as any,
         healthGoals: onboardingData.healthInfo.primaryGoals,
-        timezone: 'UTC', // Could be detected from client
+        // Mark onboarding as completed
+        onboardingCompleted: true,
+        updatedAt: new Date()
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        currentPhase: true,
+        onboardingCompleted: true,
       }
     });
 
-    // Create health profile
-    await prisma.healthProfile.create({
-      data: {
+    // Create or update health profile
+    await prisma.healthProfile.upsert({
+      where: { userId: user.id },
+      update: {
+        age: onboardingData.personalInfo.age,
+        gender: onboardingData.personalInfo.gender,
+        weight: onboardingData.healthInfo.currentWeight,
+        height: onboardingData.healthInfo.height,
+        healthConditions: onboardingData.healthInfo.healthConditions,
+        medications: onboardingData.healthInfo.medications,
+        allergies: onboardingData.healthInfo.allergies,
+      },
+      create: {
         userId: user.id,
         age: onboardingData.personalInfo.age,
         gender: onboardingData.personalInfo.gender,
@@ -116,10 +142,10 @@ router.post('/submit', async (req: Request, res: Response) => {
       .map(time => timeOfDayMap[time])
       .filter(Boolean);
 
-    // Create behavior profile
-    await prisma.behaviorProfile.create({
-      data: {
-        userId: user.id,
+    // Create or update behavior profile
+    await prisma.behaviorProfile.upsert({
+      where: { userId: user.id },
+      update: {
         motivationType: motivationTypeMap[onboardingData.behaviorProfile.motivationType],
         lossAversion: onboardingData.behaviorProfile.lossAversion,
         presentBias: onboardingData.behaviorProfile.presentBias / 10, // Normalize to 0-1
@@ -128,6 +154,26 @@ router.post('/submit', async (req: Request, res: Response) => {
         bestPerformanceTime: mappedTimeOfDay as any[],
         worstPerformanceTime: [], // Could be inferred
         averageWillpower: 5.0, // Default, will be learned
+        willpowerPattern: {
+          pattern: onboardingData.behaviorProfile.willpowerPattern,
+          timeAvailability: onboardingData.lifestyle.timeAvailability
+        },
+        publicCommitments: onboardingData.behaviorProfile.publicCommitments,
+        socialAccountability: onboardingData.behaviorProfile.socialAccountability,
+        reminderFrequency: onboardingData.behaviorProfile.reminderFrequency.toUpperCase() as any,
+        nudgeStyle: onboardingData.behaviorProfile.nudgeStyle.toUpperCase() as any,
+        personalTriggers: onboardingData.lifestyle.mainChallenges,
+      },
+      create: {
+        userId: user.id,
+        motivationType: motivationTypeMap[onboardingData.behaviorProfile.motivationType],
+        lossAversion: onboardingData.behaviorProfile.lossAversion,
+        presentBias: onboardingData.behaviorProfile.presentBias / 10,
+        socialInfluence: onboardingData.behaviorProfile.socialInfluence / 10,
+        gamificationResponse: onboardingData.behaviorProfile.gamificationResponse / 10,
+        bestPerformanceTime: mappedTimeOfDay as any[],
+        worstPerformanceTime: [],
+        averageWillpower: 5.0,
         willpowerPattern: {
           pattern: onboardingData.behaviorProfile.willpowerPattern,
           timeAvailability: onboardingData.lifestyle.timeAvailability
@@ -154,6 +200,7 @@ router.post('/submit', async (req: Request, res: Response) => {
         lastName: user.lastName,
         email: user.email,
         currentPhase: user.currentPhase,
+        onboardingCompleted: user.onboardingCompleted,
       },
       aiPersona,
       message: 'Onboarding completed successfully'
@@ -323,8 +370,26 @@ async function createInitialDailyPlan(userId: string, data: OnboardingData, pers
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  await prisma.dailyPlan.create({
-    data: {
+  await prisma.dailyPlan.upsert({
+    where: {
+      userId_date: {
+        userId,
+        date: today
+      }
+    },
+    update: {
+      phase: data.healthInfo.currentPhase.toUpperCase() as any,
+      greeting: generatePersonalizedGreeting(data, persona),
+      phaseGuidance: generatePhaseGuidance(data.healthInfo.currentPhase, persona),
+      primaryFocus: persona.recommendedApproach.primaryFocus,
+      tinyWins: generateTinyWins(data, persona),
+      habitStack: generateHabitStackSuggestions(data),
+      implementation: generateImplementationIntentions(data),
+      scheduledNudges: generateInitialNudges(data, persona),
+      contextualCues: generateContextualCues(data),
+      aiConfidence: 0.7 // Initial confidence
+    },
+    create: {
       userId,
       date: today,
       phase: data.healthInfo.currentPhase.toUpperCase() as any,

@@ -16,6 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.gstatic.com/" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?display=swap&family=Manrope:wght@400;500;700;800&family=Noto+Sans:wght@400;500;700;900"
+        />
+      </head>
       <body>
         <StyledComponentsRegistry>
           <SessionProvider>

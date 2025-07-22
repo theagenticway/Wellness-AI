@@ -68,7 +68,7 @@ const SettingsButton = styled.button`
   }
 `;
 
-const DropdownMenu = styled.div<{ show: boolean }>`
+const DropdownMenu = styled.div<{ $show: boolean }>`
   position: absolute;
   top: 100%;
   right: 0;
@@ -78,9 +78,9 @@ const DropdownMenu = styled.div<{ show: boolean }>`
   box-shadow: ${theme.shadows.lg};
   min-width: 150px;
   z-index: ${theme.zIndex.dropdown};
-  opacity: ${({ show }) => show ? 1 : 0};
-  transform: ${({ show }) => show ? 'translateY(8px)' : 'translateY(4px)'};
-  pointer-events: ${({ show }) => show ? 'auto' : 'none'};
+  opacity: ${({ $show }) => $show ? 1 : 0};
+  transform: ${({ $show }) => $show ? 'translateY(8px)' : 'translateY(4px)'};
+  pointer-events: ${({ $show }) => $show ? 'auto' : 'none'};
   transition: all 0.2s ease-in-out;
 `;
 
@@ -108,10 +108,10 @@ const DropdownItem = styled.button`
   }
 `;
 
-const Main = styled.main<{ hasNavigation?: boolean }>`
+const Main = styled.main<{ $hasNavigation?: boolean }>`
   flex: 1;
   padding: ${theme.spacing.md} ${theme.spacing.lg};
-  padding-bottom: ${({ hasNavigation }) => hasNavigation ? '100px' : theme.spacing.lg};
+  padding-bottom: ${({ $hasNavigation }) => $hasNavigation ? '100px' : theme.spacing.lg};
   max-width: 600px;
   margin: 0 auto;
   width: 100%;
@@ -144,7 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <SettingsButton onClick={() => setShowDropdown(!showDropdown)}>
             ⚙️
           </SettingsButton>
-          <DropdownMenu show={showDropdown}>
+          <DropdownMenu $show={showDropdown}>
             <DropdownItem onClick={() => setShowDropdown(false)}>
               Settings
             </DropdownItem>
@@ -155,7 +155,7 @@ export const Layout: React.FC<LayoutProps> = ({
         </HeaderActions>
       </Header>
       
-      <Main hasNavigation={showNavigation}>
+      <Main $hasNavigation={showNavigation}>
         {children}
       </Main>
       

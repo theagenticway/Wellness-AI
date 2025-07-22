@@ -37,7 +37,7 @@ const NavigationList = styled.div`
   padding: 0 ${theme.spacing.md};
 `;
 
-const NavigationItem = styled.button<{ active?: boolean }>`
+const NavigationItem = styled.button<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -47,7 +47,7 @@ const NavigationItem = styled.button<{ active?: boolean }>`
   border: none;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  color: ${({ active }) => active ? theme.colors.primary : theme.colors.text.muted};
+  color: ${({ $active }) => $active ? theme.colors.primary : theme.colors.text.muted};
   min-width: 60px;
   
   &:hover {
@@ -55,11 +55,11 @@ const NavigationItem = styled.button<{ active?: boolean }>`
   }
 `;
 
-const IconContainer = styled.div<{ active?: boolean }>`
+const IconContainer = styled.div<{ $active?: boolean }>`
   font-size: 20px;
   transition: transform 0.2s ease-in-out;
   
-  ${({ active }) => active && `
+  ${({ $active }) => $active && `
     transform: scale(1.1);
   `}
 `;
@@ -80,10 +80,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         {items.map((item) => (
           <NavigationItem
             key={item.id}
-            active={activeItem === item.id}
+            $active={activeItem === item.id}
             onClick={() => onItemClick(item.id)}
           >
-            <IconContainer active={activeItem === item.id}>
+            <IconContainer $active={activeItem === item.id}>
               {item.icon}
             </IconContainer>
             <Label>{item.label}</Label>

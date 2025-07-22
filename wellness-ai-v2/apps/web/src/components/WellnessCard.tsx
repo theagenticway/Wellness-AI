@@ -13,7 +13,9 @@ interface WellnessCardProps {
   onClick?: () => void;
 }
 
-const WellnessCardContainer = styled(Card)<{ status?: WellnessCardProps['status'] }>`
+const WellnessCardContainer = styled(Card).withConfig({
+  shouldForwardProp: (prop) => !['status'].includes(prop),
+})<{ status?: WellnessCardProps['status'] }>`
   padding: ${theme.spacing.lg};
   cursor: pointer;
   position: relative;
